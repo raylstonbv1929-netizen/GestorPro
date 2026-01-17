@@ -14,7 +14,7 @@ export const SettingsPage = () => {
 
     const [localSettings, setLocalSettings] = useState({
         ...settings,
-        isSidebarOpen: settings.isSidebarOpen ?? isSidebarOpen
+        isSidebarOpen: isSidebarOpen
     });
 
     const handleSave = () => {
@@ -106,7 +106,11 @@ export const SettingsPage = () => {
                                     <span className="text-sm text-slate-200">Menu Lateral Aberto</span>
                                 </div>
                                 <button
-                                    onClick={() => setLocalSettings({ ...localSettings, isSidebarOpen: !localSettings.isSidebarOpen })}
+                                    onClick={() => {
+                                        const newValue = !localSettings.isSidebarOpen;
+                                        setLocalSettings({ ...localSettings, isSidebarOpen: newValue });
+                                        setIsSidebarOpen(newValue);
+                                    }}
                                     className={`w-12 h-6 rounded-full transition-all relative ${localSettings.isSidebarOpen ? 'bg-emerald-500' : 'bg-slate-700'}`}
                                 >
                                     <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${localSettings.isSidebarOpen ? 'right-1' : 'left-1'}`}></div>

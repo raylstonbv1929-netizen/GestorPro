@@ -112,15 +112,23 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         isSidebarOpen: true
     }, 'agrogest_settings', user?.id);
 
-    const [isSidebarOpen, setIsSidebarOpen] = useState(settings.isSidebarOpen ?? true);
+    const [isSidebarOpen, _setIsSidebarOpen] = useState(settings.isSidebarOpen ?? true);
+
+    const setIsSidebarOpen = (open: boolean) => {
+        _setIsSidebarOpen(open);
+        if (settings.isSidebarOpen !== open) {
+            setSettings({ ...settings, isSidebarOpen: open });
+        }
+    };
+
     const [activeTab, setActiveTab] = useState('dashboard');
     const [isFullScreen, setIsFullScreen] = useState(false);
     const [currentDate] = useState(new Date());
 
-    // Sincroniza o estado do menu lateral quando as configurações são salvas
+    // Sincroniza o estado do menu lateral quando as configurações são carregadas (ex: do cloud)
     useEffect(() => {
-        if (settings.isSidebarOpen !== undefined) {
-            setIsSidebarOpen(settings.isSidebarOpen);
+        if (settings.isSidebarOpen !== undefined && settings.isSidebarOpen !== isSidebarOpen) {
+            _setIsSidebarOpen(settings.isSidebarOpen);
         }
     }, [settings.isSidebarOpen]);
 
