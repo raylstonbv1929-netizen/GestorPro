@@ -100,7 +100,11 @@ function App() {
     return <LoginPage />;
   }
 
-  return <MainContent />;
+  return (
+    <AppProvider>
+      <MainContent />
+    </AppProvider>
+  );
 }
 
 function MainContent() {
@@ -252,9 +256,7 @@ function MainContent() {
 export default function AppWrapper() {
   return (
     <AuthProvider>
-      <AppProvider>
-        <App />
-      </AppProvider>
+      <App />
     </AuthProvider>
   );
 }
