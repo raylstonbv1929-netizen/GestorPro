@@ -9,6 +9,8 @@ export interface Product {
     price: number;
     status: 'ok' | 'low' | 'critical';
     location: string;
+    batch?: string;
+    expirationDate?: string;
 }
 
 export interface Transaction {

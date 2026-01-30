@@ -1,46 +1,102 @@
 import React, { useState } from 'react';
 import {
-    Warehouse, Package, AlertTriangle, Scale, Search, X, Plus,
-    Layout, MapPin, Edit, Trash2, History
+    Plus, Search, History as HistoryIcon, Box, Settings2, Database, SlidersHorizontal, X as CloseIcon, Table
 } from 'lucide-react';
 import { useApp } from '../../contexts/AppContext';
 import { Card } from '../../components/common/Card';
-import { formatCurrency, formatNumber, parseValue, maskNumber, maskValue } from '../../utils/format';
+import { formatNumber, parseValue, maskNumber, maskValue } from '../../utils/format';
+import { Product } from '../../types';
+
+// Modular Components
+import { ProductCard } from './components/ProductCard';
+import { AuditForm } from './components/AuditForm';
+import { StockStats } from './components/StockStats';
+import { MovementsLedger } from './components/MovementsLedger';
+import { QuickAdjustPopover } from './components/QuickAdjustPopover';
+import { AdvancedFilters, FilterCriteria } from './components/AdvancedFilters';
+import { ProductHistoryDrawer } from './components/ProductHistoryDrawer';
+import { BulkAuditForm } from './components/BulkAuditForm';
 
 export const ProductsPage = () => {
     const {
         products, setProducts, stockMovements, setStockMovements,
-        handleStockAdjustment, addActivity, settings
+        handleStockAdjustment, addActivity, settings,
+        collaborators, properties, plots
     } = useApp();
 
     const [searchTerm, setSearchTerm] = useState('');
-    const [filter, setFilter] = useState('all');
     const [activeSubTab, setActiveSubTab] = useState('list'); // 'list' or 'movements'
     const [isProductFormOpen, setIsProductFormOpen] = useState(false);
+    const [isAdvancedFiltersOpen, setIsAdvancedFiltersOpen] = useState(false);
     const [editingProductId, setEditingProductId] = useState<number | null>(null);
+    const [activeFormZone, setActiveFormZone] = useState(1);
+    const [quickAdjustProduct, setQuickAdjustProduct] = useState<Product | null>(null);
+    const [historyProduct, setHistoryProduct] = useState<Product | null>(null);
+    const [isHistoryDrawerOpen, setIsHistoryDrawerOpen] = useState(false);
+    const [isBulkEntryOpen, setIsBulkEntryOpen] = useState(false);
+
+    const initialFilters: FilterCriteria = {
+        categories: [],
+        status: [],
+        minPrice: '',
+        maxPrice: '',
+        minStock: '',
+        maxStock: '',
+        expirationWindow: null
+    };
+
+    const [advancedFilters, setAdvancedFilters] = useState<FilterCriteria>(initialFilters);
+
     const [productForm, setProductForm] = useState({
         name: '', category: 'Fertilizantes', stock: '', unit: 'kg',
-        unitWeight: '', minStock: '', price: '', location: '', expiration: ''
+        unitWeight: '', minStock: '', price: '', location: '', batch: '', expirationDate: ''
     });
 
     const filteredProducts = products.filter(p => {
         const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            p.category.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesFilter = filter === 'all' ? true : filter === 'low' ? p.status === 'low' : p.category === filter;
-        return matchesSearch && matchesFilter;
+            p.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (p.location && p.location.toLowerCase().includes(searchTerm.toLowerCase())) ||
+            (p.batch && p.batch.toLowerCase().includes(searchTerm.toLowerCase()));
+
+        const matchesCategory = advancedFilters.categories.length === 0 || advancedFilters.categories.includes(p.category);
+
+        const matchesStatus = advancedFilters.status.length === 0 || advancedFilters.status.some(s => {
+            if (s === 'ok') return p.status === 'ok';
+            if (s === 'low') return p.status === 'low';
+            if (s === 'critical') return p.status === 'critical';
+            if (s === 'expiring') {
+                if (!p.expirationDate) return false;
+                const daysToExpiration = (new Date(p.expirationDate).getTime() - new Date().getTime()) / (1000 * 3600 * 24);
+                return daysToExpiration > 0 && daysToExpiration <= 30;
+            }
+            return true;
+        });
+
+        const matchesPrice = (advancedFilters.minPrice === '' || p.price >= parseValue(advancedFilters.minPrice)) &&
+            (advancedFilters.maxPrice === '' || p.price <= parseValue(advancedFilters.maxPrice));
+
+        const matchesStock = (advancedFilters.minStock === '' || p.stock >= parseValue(advancedFilters.minStock)) &&
+            (advancedFilters.maxStock === '' || p.stock <= parseValue(advancedFilters.maxStock));
+
+        const matchesExpirationWindow = advancedFilters.expirationWindow === null || (() => {
+            if (!p.expirationDate) return false;
+            const daysToExpiration = (new Date(p.expirationDate).getTime() - new Date().getTime()) / (1000 * 3600 * 24);
+            return daysToExpiration > 0 && daysToExpiration <= advancedFilters.expirationWindow;
+        })();
+
+        return matchesSearch && matchesCategory && matchesStatus && matchesPrice && matchesStock && matchesExpirationWindow;
     });
 
     const totalItems = products.length;
-    const lowStockItems = products.filter(p => p.status === 'low').length;
-    const totalStockValue = products.reduce((acc, p) => acc + (parseValue(p.stock) * parseValue(p.price)), 0);
+    const lowStockItems = products.filter(p => p.status !== 'ok').length;
+    const totalStockValue = products.reduce((acc, p) => acc + (Number(p.stock) * Number(p.price)), 0);
 
-    const adjustStock = (id: number, amount: number) => {
+    const handleQuickAdjust = (payload: any) => {
         handleStockAdjustment({
-            productId: id,
-            type: amount > 0 ? 'in' : 'out',
-            quantity: Math.abs(amount),
-            reason: 'Ajuste manual rápido'
+            ...payload,
+            customUser: payload.operator
         });
+        addActivity(payload.type === 'in' ? 'Entrada (Ajuste Rápido)' : 'Saída (Ajuste Rápido)', `Produto ID: ${payload.productId}`);
     };
 
     const handleProductSubmit = (e: React.FormEvent) => {
@@ -56,12 +112,12 @@ export const ProductsPage = () => {
 
         if (editingProductId) {
             setProducts(products.map(p => p.id === editingProductId ? { ...p, ...productData } : p));
-            addActivity('Editou produto', productData.name);
+            addActivity('Atualizou registro técnico', productData.name);
         } else {
             const newId = Date.now();
             const newProduct = { ...productData, id: newId };
             setProducts([newProduct, ...products]);
-            addActivity('Adicionou produto', productData.name);
+            addActivity('Cadastrou novo insumo', productData.name);
 
             if (productData.stock > 0) {
                 const movement: any = {
@@ -73,372 +129,281 @@ export const ProductsPage = () => {
                     quantityUnit: productData.unit,
                     realChange: productData.stock,
                     date: new Date().toISOString(),
-                    reason: 'Estoque inicial no cadastro',
-                    user: settings.userName || 'Sistema'
+                    reason: 'Saldo inicial de implantação',
+                    user: settings.userName || 'Sistema',
+                    batch: productData.batch
                 };
                 setStockMovements([movement, ...stockMovements]);
             }
         }
         setIsProductFormOpen(false);
         setEditingProductId(null);
-        setProductForm({ name: '', category: 'Fertilizantes', stock: '', unit: 'kg', unitWeight: '', minStock: '', price: '', location: '', expiration: '' });
+        setActiveFormZone(1);
+        setProductForm({ name: '', category: 'Fertilizantes', stock: '', unit: 'kg', unitWeight: '', minStock: '', price: '', location: '', batch: '', expirationDate: '' });
+    };
+
+    const handleBulkSubmit = (newProducts: any[]) => {
+        const productsWithIds = newProducts.map((p, index) => ({
+            ...p,
+            id: Date.now() + index
+        }));
+
+        setProducts([...productsWithIds, ...products]);
+
+        const newMovements = productsWithIds.map((p, index) => ({
+            id: Date.now() + 100 + index,
+            productId: p.id,
+            productName: p.name,
+            type: 'in' as const,
+            quantity: p.stock,
+            quantityUnit: p.unit,
+            realChange: p.stock,
+            date: new Date().toISOString(),
+            reason: 'Implantação Massiva SpeedGrid™',
+            user: settings.userName || 'Sistema',
+            batch: ''
+        }));
+
+        setStockMovements([...newMovements, ...stockMovements]);
+        addActivity('Implantação Massiva Concluída', `${newProducts.length} novos insumos registrados`);
+        setIsBulkEntryOpen(false);
     };
 
     const deleteProduct = (id: number) => {
-        const product = products.find(p => p.id === id);
-        if (product) {
-            addActivity('Removeu produto', product.name);
+        if (confirm('Deseja realmente remover este item do inventário? Esta ação é irreversível.')) {
+            const product = products.find(p => p.id === id);
+            if (product) {
+                addActivity('Removeu do inventário', product.name);
+            }
+            setProducts(products.filter(p => p.id !== id));
         }
-        setProducts(products.filter(p => p.id !== id));
+    };
+
+    const openEdit = (product: Product) => {
+        setEditingProductId(product.id);
+        setProductForm({
+            name: product.name,
+            category: product.category,
+            stock: maskNumber(product.stock),
+            unit: product.unit,
+            unitWeight: maskNumber(product.unitWeight || 1),
+            minStock: maskNumber(product.minStock),
+            price: maskValue(product.price),
+            location: product.location || '',
+            batch: product.batch || '',
+            expirationDate: product.expirationDate || ''
+        });
+        setIsProductFormOpen(true);
+        setActiveFormZone(1);
+    };
+
+    const getCategoryStyles = (category: string) => {
+        const agricolas = ['Fertilizantes', 'Sementes', 'Defensivos', 'Herbicidas', 'Fungicidas', 'Inseticidas', 'Adjuvantes', 'Corretivos', 'Nutrição Foliar'];
+        const logistica = ['Combustível', 'Lubrificantes', 'Peças', 'Pneus', 'Filtros'];
+        const infra = ['Ferramentas', 'Materiais de Construção', 'Elétrica', 'Hidráulica', 'Ferragens'];
+        const op = ['EPIs', 'Embalagens', 'Limpeza'];
+        const pecuaria = ['Medicamentos Veterinários', 'Suplementos & Nutrição', 'Vacinas'];
+
+        if (agricolas.includes(category)) return 'text-emerald-500 bg-emerald-500/10';
+        if (logistica.includes(category)) return 'text-blue-500 bg-blue-500/10';
+        if (infra.includes(category)) return 'text-amber-500 bg-amber-500/10';
+        if (op.includes(category)) return 'text-cyan-500 bg-cyan-500/10';
+        if (pecuaria.includes(category)) return 'text-rose-500 bg-rose-500/10';
+        return 'text-slate-500 bg-slate-500/10';
     };
 
     return (
-        <div className="animate-fade-in space-y-6 flex flex-col h-[calc(100vh-180px)]">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-slate-900/20 p-6 rounded-3xl border border-slate-800/50">
-                <div>
-                    <h2 className="text-2xl font-black text-white flex items-center gap-3 tracking-tight">
-                        <div className="p-2 bg-emerald-500/10 rounded-xl text-emerald-400">
-                            <Warehouse size={28} />
+        <div className="animate-fade-in space-y-6 flex flex-col min-h-0 h-full p-1">
+            {/* HEADER TÁTICO */}
+            <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6 bg-slate-900/40 p-8 rounded-[2rem] border border-slate-800/60 backdrop-blur-xl shadow-2xl relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 blur-[100px] -mr-32 -mt-32 rounded-full" />
+
+                <div className="flex items-center gap-6 relative z-10">
+                    <div className="w-20 h-20 rounded-3xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-500 shadow-lg shadow-emerald-500/10 relative group">
+                        <Database size={36} strokeWidth={2.5} className="group-hover:scale-110 transition-transform" />
+                        <div className="absolute -top-2 -right-2 w-6 h-6 bg-emerald-500 text-emerald-950 text-[10px] font-black rounded-lg flex items-center justify-center border-4 border-slate-900 shadow-xl">
+                            {totalItems}
                         </div>
-                        Gestão de Estoque
-                    </h2>
-                    <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mt-1 ml-14">Controle total de insumos e materiais</p>
+                    </div>
+                    <div>
+                        <div className="flex items-center gap-3 mb-1">
+                            <h2 className="text-3xl font-black text-white tracking-tighter uppercase italic">Console de Inventário</h2>
+                            <span className="px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-lg text-[10px] text-emerald-500 font-black uppercase tracking-widest">PRO MAX v4</span>
+                        </div>
+                        <p className="text-slate-500 text-[11px] font-black uppercase tracking-[0.4em] flex items-center gap-3 italic">
+                            <Settings2 size={12} className="text-emerald-500" /> Auditoria Logística de Precisão
+                        </p>
+                    </div>
                 </div>
 
-                <div className="flex bg-slate-950 p-1.5 rounded-2xl border border-slate-800 shadow-2xl relative overflow-hidden group">
-                    <div
-                        className={`absolute top-1.5 bottom-1.5 transition-all duration-300 ease-out bg-emerald-500 rounded-xl shadow-lg shadow-emerald-500/20 ${activeSubTab === 'list' ? 'left-1.5 w-[110px]' : 'left-[125px] w-[150px]'}`}
-                    />
+                <div className="flex bg-slate-950 p-2 rounded-2xl border border-slate-800 shadow-inner relative z-10 w-full xl:w-auto">
                     <button
                         onClick={() => setActiveSubTab('list')}
-                        className={`relative z-10 px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-300 ${activeSubTab === 'list' ? 'text-emerald-950' : 'text-slate-500 hover:text-slate-300'}`}
+                        className={`flex-1 xl:flex-none px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-500 relative overflow-hidden group ${activeSubTab === 'list' ? 'text-emerald-950' : 'text-slate-500 hover:text-slate-300'}`}
                     >
-                        Produtos
+                        {activeSubTab === 'list' && <div className="absolute inset-0 bg-emerald-500 transition-all duration-500" />}
+                        <span className="relative z-10 flex items-center justify-center gap-2">
+                            <Box size={14} /> Produtos
+                        </span>
                     </button>
                     <button
                         onClick={() => setActiveSubTab('movements')}
-                        className={`relative z-10 px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-300 ${activeSubTab === 'movements' ? 'text-emerald-950' : 'text-slate-500 hover:text-slate-300'}`}
+                        className={`flex-1 xl:flex-none px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-500 relative overflow-hidden group ${activeSubTab === 'movements' ? 'text-emerald-950' : 'text-slate-500 hover:text-slate-300'}`}
                     >
-                        Movimentações
+                        {activeSubTab === 'movements' && <div className="absolute inset-0 bg-emerald-500 transition-all duration-500" />}
+                        <span className="relative z-10 flex items-center justify-center gap-2">
+                            <HistoryIcon size={14} /> Movimentações
+                        </span>
                     </button>
                 </div>
             </div>
 
             {activeSubTab === 'list' ? (
                 <>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div onClick={() => setFilter('all')} className={`bg-slate-900/40 border p-6 rounded-3xl flex items-center gap-5 transition-all cursor-pointer hover:scale-[1.02] active:scale-95 group ${filter === 'all' ? 'border-emerald-500/50 bg-emerald-500/5 ring-1 ring-emerald-500/20' : 'border-slate-800 hover:border-slate-700'}`}>
-                            <div className="p-4 bg-emerald-500/10 rounded-2xl text-emerald-400 group-hover:scale-110 transition-transform shadow-inner"><Package size={28} /></div>
-                            <div>
-                                <p className="text-slate-500 text-[10px] uppercase font-black tracking-widest mb-1">Total de Itens</p>
-                                <p className="text-3xl font-black text-white leading-none">{totalItems}</p>
-                            </div>
+                    <StockStats
+                        totalItems={totalItems}
+                        lowStockItems={lowStockItems}
+                        totalStockValue={totalStockValue}
+                        currency={settings.currency}
+                    />
+
+                    {/* BARRA DE COMANDO */}
+                    <div className="bg-slate-900/40 p-6 rounded-3xl border border-slate-800/60 backdrop-blur-xl flex flex-col xl:flex-row justify-between items-center gap-6 shadow-xl">
+                        <div className="relative w-full xl:w-[500px] group">
+                            <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-emerald-500 transition-colors" size={20} />
+                            <input
+                                placeholder="LOCALIZAR INSUMO OU LOTE..."
+                                value={searchTerm}
+                                onChange={e => setSearchTerm(e.target.value)}
+                                className="w-full bg-slate-950/80 border border-slate-800 rounded-2xl pl-16 pr-6 py-5 text-sm font-black text-white focus:border-emerald-500/50 outline-none transition-all shadow-inner tracking-widest uppercase italic"
+                            />
                         </div>
-                        <div onClick={() => setFilter('low')} className={`bg-slate-900/40 border p-6 rounded-3xl flex items-center gap-5 transition-all cursor-pointer hover:scale-[1.02] active:scale-95 group ${filter === 'low' ? 'border-rose-500/50 bg-rose-500/5 ring-1 ring-rose-500/20' : 'border-slate-800 hover:border-slate-700'}`}>
-                            <div className="p-4 bg-rose-500/10 rounded-2xl text-rose-400 group-hover:scale-110 transition-transform shadow-inner"><AlertTriangle size={28} /></div>
-                            <div>
-                                <p className="text-slate-500 text-[10px] uppercase font-black tracking-widest mb-1">Estoque Baixo</p>
-                                <p className="text-3xl font-black text-white leading-none">{lowStockItems}</p>
-                            </div>
-                        </div>
-                        <div className="bg-slate-900/40 border border-slate-800 p-6 rounded-3xl flex items-center gap-5 shadow-inner">
-                            <div className="p-4 bg-blue-500/10 rounded-2xl text-blue-400 shadow-inner"><Scale size={28} /></div>
-                            <div>
-                                <p className="text-slate-500 text-[10px] uppercase font-black tracking-widest mb-1">Valor Investido</p>
-                                <p className="text-3xl font-black text-white leading-none">{formatCurrency(totalStockValue, settings.currency)}</p>
-                            </div>
+
+                        <div className="flex items-center gap-4 w-full xl:w-auto">
+                            <button
+                                onClick={() => setIsAdvancedFiltersOpen(true)}
+                                className={`px-6 py-5 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center gap-3 transition-all border ${Object.values(advancedFilters).some(v => Array.isArray(v) ? v.length > 0 : v !== '' && v !== null)
+                                    ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-400'
+                                    : 'bg-slate-950 border-slate-800 text-slate-500 hover:border-slate-700'
+                                    }`}
+                            >
+                                <SlidersHorizontal size={18} />
+                                Filtros Avançados
+                            </button>
+
+                            <button
+                                onClick={() => setIsBulkEntryOpen(true)}
+                                className="bg-slate-950 hover:bg-slate-900 text-slate-400 hover:text-white px-6 py-5 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center gap-3 transition-all border border-slate-800 hover:border-slate-700 active:scale-95"
+                            >
+                                <Table size={18} />
+                                LOTE MASSIVO
+                            </button>
+
+                            <button
+                                onClick={() => { setIsProductFormOpen(true); setEditingProductId(null); setActiveFormZone(1); setProductForm({ name: '', category: 'Fertilizantes', stock: '', unit: 'kg', unitWeight: '', minStock: '', price: '', location: '', batch: '', expirationDate: '' }); }}
+                                className="bg-emerald-500 hover:bg-emerald-400 text-emerald-950 px-8 py-5 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] flex items-center gap-3 transition-all shadow-xl shadow-emerald-500/20 active:scale-95 whitespace-nowrap"
+                            >
+                                <Plus size={18} strokeWidth={3} />
+                                REGISTRAR INSUMO
+                            </button>
                         </div>
                     </div>
 
-                    <Card variant="highlight" className="p-5 border-slate-800/60 rounded-3xl shadow-2xl">
-                        <div className="flex flex-col md:flex-row gap-4">
-                            <div className="relative flex-1 group">
-                                <Search className="absolute left-4 top-3.5 text-slate-500 group-focus-within:text-emerald-500 transition-colors" size={20} />
-                                <input
-                                    type="text"
-                                    placeholder="Buscar por nome, categoria ou localização..."
-                                    value={searchTerm}
-                                    onChange={e => setSearchTerm(e.target.value)}
-                                    className="w-full bg-slate-950 border border-slate-800 rounded-2xl pl-12 pr-4 py-3.5 text-sm text-slate-200 outline-none focus:border-emerald-500/50 focus:ring-4 focus:ring-emerald-500/5 transition-all font-medium"
-                                />
-                            </div>
-                            <div className="flex gap-3">
-                                <select
-                                    value={filter}
-                                    onChange={e => setFilter(e.target.value)}
-                                    className="bg-slate-950 border border-slate-800 rounded-2xl px-6 py-3.5 text-xs font-black text-slate-400 outline-none focus:border-emerald-500/50 transition-all appearance-none cursor-pointer hover:text-white pr-12"
-                                >
-                                    <option value="all">Todas Categorias</option>
-                                    <option value="low">Estoque Baixo</option>
-                                    <option value="Fertilizantes">Fertilizantes</option>
-                                    <option value="Sementes">Sementes</option>
-                                    <option value="Defensivos">Defensivos</option>
-                                    <option value="Herbicidas">Herbicidas</option>
-                                    <option value="Fungicidas">Fungicidas</option>
-                                    <option value="Inseticidas">Inseticidas</option>
-                                    <option value="Corretivos">Corretivos</option>
-                                    <option value="Nutrição Foliar">Nutrição Foliar</option>
-                                    <option value="Peças">Peças</option>
-                                    <option value="Combustível">Combustível</option>
-                                    <option value="Lubrificantes">Lubrificantes</option>
-                                    <option value="EPIs">EPIs</option>
-                                    <option value="Ferramentas">Ferramentas</option>
-                                    <option value="Embalagens">Embalagens</option>
-                                    <option value="Outros">Outros</option>
-                                </select>
-                                <button
-                                    onClick={() => { setIsProductFormOpen(true); setEditingProductId(null); setProductForm({ name: '', category: 'Fertilizantes', stock: '', unit: 'kg', unitWeight: '', minStock: '', price: '', location: '', expiration: '' }); }}
-                                    className="bg-emerald-500 hover:bg-emerald-400 text-emerald-950 px-8 py-3.5 rounded-2xl font-black text-xs uppercase tracking-widest flex items-center gap-3 transition-all shadow-xl shadow-emerald-500/20 whitespace-nowrap active:scale-95"
-                                >
-                                    <Plus size={20} />
-                                    <span>Novo Produto</span>
-                                </button>
-                            </div>
-                        </div>
-                    </Card>
-
-                    {isProductFormOpen && (
-                        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-                            <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" onClick={() => setIsProductFormOpen(false)} />
-                            <Card variant="highlight" className="w-full max-w-3xl relative z-10 shadow-2xl border-emerald-500/30 !scale-100 !hover:scale-100" style={{ transform: 'none' }}>
-                                <form onSubmit={handleProductSubmit} className="space-y-6">
-                                    <div className="flex justify-between items-center mb-2">
-                                        <h3 className="text-lg font-bold text-white uppercase tracking-widest">{editingProductId ? 'Editar Produto' : 'Novo Produto'}</h3>
-                                        <button type="button" onClick={() => setIsProductFormOpen(false)} className="text-slate-500 hover:text-white"><X size={24} /></button>
-                                    </div>
-
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                        <div className="md:col-span-2 flex flex-col gap-2">
-                                            <label className="text-[10px] text-slate-500 uppercase font-black tracking-widest ml-1">Nome do Produto</label>
-                                            <input required placeholder="Ex: Adubo NPK 10-10-10" value={productForm.name} onChange={e => setProductForm({ ...productForm, name: e.target.value })} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-slate-200 focus:border-emerald-500 outline-none transition-all shadow-inner" />
-                                        </div>
-
-                                        <div className="flex flex-col gap-2">
-                                            <label className="text-[10px] text-slate-500 uppercase font-black tracking-widest ml-1">Categoria</label>
-                                            <select value={productForm.category} onChange={e => setProductForm({ ...productForm, category: e.target.value })} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-slate-200 focus:border-emerald-500 outline-none transition-all shadow-inner">
-                                                <option>Fertilizantes</option>
-                                                <option>Sementes</option>
-                                                <option>Defensivos</option>
-                                                <option>Herbicidas</option>
-                                                <option>Fungicidas</option>
-                                                <option>Inseticidas</option>
-                                                <option>Corretivos</option>
-                                                <option>Nutrição Foliar</option>
-                                                <option>Peças</option>
-                                                <option>Combustível</option>
-                                                <option>Lubrificantes</option>
-                                                <option>EPIs</option>
-                                                <option>Ferramentas</option>
-                                                <option>Embalagens</option>
-                                                <option>Outros</option>
-                                            </select>
-                                        </div>
-
-                                        <div className="flex flex-col gap-2">
-                                            <label className="text-[10px] text-slate-500 uppercase font-black tracking-widest ml-1">Unidade</label>
-                                            <select value={productForm.unit} onChange={e => setProductForm({ ...productForm, unit: e.target.value })} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-slate-200 focus:border-emerald-500 outline-none transition-all shadow-inner">
-                                                <optgroup label="Peso/Massa">
-                                                    <option>kg</option>
-                                                    <option>g</option>
-                                                    <option>ton</option>
-                                                    <option>@ (arroba)</option>
-                                                </optgroup>
-                                                <optgroup label="Volume/Líquidos">
-                                                    <option>L</option>
-                                                    <option>ml</option>
-                                                    <option>galão</option>
-                                                    <option>bombona</option>
-                                                    <option>balde</option>
-                                                </optgroup>
-                                                <optgroup label="Embalagens/Unidades">
-                                                    <option>un</option>
-                                                    <option>sc (saco)</option>
-                                                    <option>bag (big bag)</option>
-                                                    <option>caixa</option>
-                                                </optgroup>
-                                            </select>
-                                        </div>
-
-                                        <div className="flex flex-col gap-2">
-                                            <label className="text-[10px] text-slate-500 uppercase font-black tracking-widest ml-1">Peso/Vol. Ref.</label>
-                                            <input placeholder="Ex: 25,00" value={productForm.unitWeight} onChange={e => setProductForm({ ...productForm, unitWeight: maskNumber(e.target.value) })} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-slate-200 focus:border-emerald-500 outline-none transition-all shadow-inner" />
-                                        </div>
-
-                                        <div className="flex flex-col gap-2">
-                                            <label className="text-[10px] text-slate-500 uppercase font-black tracking-widest ml-1">Estoque Inicial</label>
-                                            <input placeholder="0,00" value={productForm.stock} onChange={e => setProductForm({ ...productForm, stock: maskNumber(e.target.value) })} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-slate-200 focus:border-emerald-500 outline-none transition-all shadow-inner" />
-                                        </div>
-
-                                        <div className="flex flex-col gap-2">
-                                            <label className="text-[10px] text-slate-500 uppercase font-black tracking-widest ml-1">Estoque Mínimo</label>
-                                            <input placeholder="0,00" value={productForm.minStock} onChange={e => setProductForm({ ...productForm, minStock: maskNumber(e.target.value) })} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-slate-200 focus:border-emerald-500 outline-none transition-all shadow-inner" />
-                                        </div>
-
-                                        <div className="flex flex-col gap-2">
-                                            <label className="text-[10px] text-slate-500 uppercase font-black tracking-widest ml-1">Preço Unitário</label>
-                                            <input placeholder="0,00" value={productForm.price} onChange={e => setProductForm({ ...productForm, price: maskValue(e.target.value) })} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-slate-200 focus:border-emerald-500 outline-none transition-all shadow-inner" />
-                                        </div>
-
-                                        <div className="md:col-span-2 flex flex-col gap-2">
-                                            <label className="text-[10px] text-slate-500 uppercase font-black tracking-widest ml-1">Localização</label>
-                                            <input placeholder="Ex: Galpão A, Prateleira 2" value={productForm.location} onChange={e => setProductForm({ ...productForm, location: e.target.value })} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-slate-200 focus:border-emerald-500 outline-none transition-all shadow-inner" />
-                                        </div>
-                                    </div>
-
-                                    <div className="flex justify-end gap-3 mt-6">
-                                        <button type="button" onClick={() => setIsProductFormOpen(false)} className="px-8 py-3 rounded-xl bg-slate-800 text-slate-300 font-black text-xs uppercase tracking-widest hover:bg-slate-700 transition-all">Cancelar</button>
-                                        <button type="submit" className="px-10 py-3 rounded-xl bg-emerald-500 text-emerald-950 font-black text-xs uppercase tracking-widest hover:bg-emerald-400 transition-all shadow-lg shadow-emerald-500/20">
-                                            {editingProductId ? 'SALVAR ALTERAÇÕES' : 'CONFIRMAR CADASTRO'}
-                                        </button>
-                                    </div>
-                                </form>
-                            </Card>
+                    {/* Filter Chips Area */}
+                    {Object.values(advancedFilters).some(v => Array.isArray(v) ? v.length > 0 : v !== '' && v !== null) && (
+                        <div className="flex flex-wrap gap-2 px-2 animate-fade-in">
+                            {advancedFilters.categories.map(cat => (
+                                <span key={cat} className="px-3 py-1.5 bg-emerald-500/5 border border-emerald-500/20 rounded-lg text-[8px] font-black text-emerald-400 uppercase tracking-widest flex items-center gap-2">
+                                    {cat} <CloseIcon size={10} className="cursor-pointer hover:text-white" onClick={() => setAdvancedFilters({ ...advancedFilters, categories: advancedFilters.categories.filter(c => c !== cat) })} />
+                                </span>
+                            ))}
+                            {advancedFilters.status.map(s => (
+                                <span key={s} className="px-3 py-1.5 bg-orange-500/5 border border-orange-500/20 rounded-lg text-[8px] font-black text-orange-400 uppercase tracking-widest flex items-center gap-2">
+                                    STATUS: {s.toUpperCase()} <CloseIcon size={10} className="cursor-pointer hover:text-white" onClick={() => setAdvancedFilters({ ...advancedFilters, status: advancedFilters.status.filter(st => st !== s) })} />
+                                </span>
+                            ))}
+                            {(advancedFilters.minPrice || advancedFilters.maxPrice) && (
+                                <span className="px-3 py-1.5 bg-blue-500/5 border border-blue-500/20 rounded-lg text-[8px] font-black text-blue-400 uppercase tracking-widest flex items-center gap-2">
+                                    FAIXA PREÇO <CloseIcon size={10} className="cursor-pointer hover:text-white" onClick={() => setAdvancedFilters({ ...advancedFilters, minPrice: '', maxPrice: '' })} />
+                                </span>
+                            )}
+                            {advancedFilters.expirationWindow && (
+                                <span className="px-3 py-1.5 bg-rose-500/5 border border-rose-500/20 rounded-lg text-[8px] font-black text-rose-400 uppercase tracking-widest flex items-center gap-2">
+                                    VENCE EM {advancedFilters.expirationWindow} DIAS <CloseIcon size={10} className="cursor-pointer hover:text-white" onClick={() => setAdvancedFilters({ ...advancedFilters, expirationWindow: null })} />
+                                </span>
+                            )}
+                            <button onClick={() => setAdvancedFilters(initialFilters)} className="px-3 py-1.5 text-[8px] font-black text-slate-500 uppercase tracking-widest hover:text-white transition-colors">Limpar Tudo</button>
                         </div>
                     )}
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 flex-1 overflow-y-auto p-2 pb-20 custom-scrollbar min-h-0">
+                    {/* GRID DE AUDITORIA */}
+                    <div className="flex-1 min-h-[400px] grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-6 overflow-y-auto pr-2 custom-scrollbar pb-10">
                         {filteredProducts.map(prod => (
-                            <Card key={prod.id} className="group hover:border-emerald-500/30 p-0 overflow-hidden flex flex-col border-slate-800/60 transition-all hover:shadow-2xl hover:shadow-emerald-500/5 rounded-3xl min-h-[450px]">
-                                <div className="p-6 flex-1">
-                                    <div className="flex justify-between items-start mb-6">
-                                        <div className="flex items-center gap-4">
-                                            <div className="w-14 h-14 rounded-2xl bg-slate-950 border border-slate-800 flex items-center justify-center text-emerald-400 group-hover:scale-110 transition-transform shadow-inner group-hover:border-emerald-500/30">
-                                                <Package size={26} />
-                                            </div>
-                                            <div>
-                                                <h4 className="font-black text-white text-base tracking-tight leading-tight group-hover:text-emerald-400 transition-colors">{prod.name}</h4>
-                                                <span className="text-[10px] text-slate-500 uppercase font-black tracking-widest">{prod.category}</span>
-                                            </div>
-                                        </div>
-                                        <span className={`px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border ${prod.status === 'ok' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border-rose-500/20 animate-pulse'}`}>
-                                            {prod.status === 'ok' ? 'Normal' : 'Crítico'}
-                                        </span>
-                                    </div>
-
-                                    <div className="grid grid-cols-2 gap-4 mb-6">
-                                        <div className="bg-slate-950/50 p-4 rounded-2xl border border-slate-800/50 group-hover:border-emerald-500/20 transition-all relative overflow-hidden shadow-inner">
-                                            <span className="text-[9px] text-slate-500 block uppercase font-black tracking-widest mb-1.5">Saldo Físico</span>
-                                            <div className="flex items-baseline gap-1.5">
-                                                <span className="text-2xl font-black text-white">{formatNumber(prod.stock)}</span>
-                                                <span className="text-xs text-slate-500 font-black uppercase">{prod.unit}</span>
-                                            </div>
-                                            <div className="mt-1.5 text-[10px] text-slate-400 font-bold flex items-center gap-1.5">
-                                                <Scale size={12} className="text-emerald-500/50" />
-                                                ≈ {formatNumber(parseValue(prod.stock) * (parseFloat(prod.unitWeight as any) || 1))} {['L', 'ml', 'galão', 'tambor', 'bombona', 'balde', 'frasco', 'ampola', 'bisnaga'].includes(prod.unit) ? 'L' : 'kg'}
-                                            </div>
-                                        </div>
-                                        <div className="bg-slate-950/50 p-4 rounded-2xl border border-slate-800/50 group-hover:border-emerald-500/20 transition-all shadow-inner">
-                                            <span className="text-[9px] text-slate-500 block uppercase font-black tracking-widest mb-1.5">Valor Unitário</span>
-                                            <div className="text-2xl font-black text-white leading-none mb-1.5">{formatCurrency(prod.price, settings.currency)}</div>
-                                            <div className="text-[10px] text-slate-400 font-bold">
-                                                Total: {formatCurrency(parseValue(prod.stock) * parseValue(prod.price), settings.currency)}
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="space-y-3 bg-slate-950/30 p-4 rounded-2xl border border-slate-800/30">
-                                        <div className="flex items-center justify-between text-[11px]">
-                                            <span className="text-slate-500 font-black uppercase tracking-widest flex items-center gap-2"><MapPin size={14} className="text-blue-500" /> Localização</span>
-                                            <span className="text-slate-200 font-black">{prod.location || 'Não definido'}</span>
-                                        </div>
-                                        <div className="flex items-center justify-between text-[11px]">
-                                            <span className="text-slate-500 font-black uppercase tracking-widest flex items-center gap-2"><Scale size={14} className="text-emerald-500" /> Peso Ref.</span>
-                                            <span className="text-slate-200 font-black">{prod.unitWeight} Kg/L por {prod.unit}</span>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="px-6 py-5 bg-slate-950/40 border-t border-slate-800/50 flex justify-between items-center">
-                                    <div className="flex gap-3">
-                                        <button onClick={() => { setEditingProductId(prod.id); setProductForm(prod as any); setIsProductFormOpen(true); }} className="p-2.5 bg-slate-900 hover:bg-emerald-500/20 text-slate-400 hover:text-emerald-400 rounded-xl border border-slate-800 transition-all active:scale-90"><Edit size={18} /></button>
-                                        <button onClick={() => deleteProduct(prod.id)} className="p-2.5 bg-slate-900 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 rounded-xl border border-slate-800 transition-all active:scale-90"><Trash2 size={18} /></button>
-                                    </div>
-                                    <div className="flex gap-2">
-                                        <button onClick={(e) => { e.stopPropagation(); adjustStock(prod.id, -1); }} className="w-10 h-10 flex items-center justify-center bg-slate-900 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 rounded-xl border border-slate-800 transition-all font-black text-lg active:scale-90">-</button>
-                                        <button onClick={(e) => { e.stopPropagation(); adjustStock(prod.id, 1); }} className="w-10 h-10 flex items-center justify-center bg-slate-900 hover:bg-emerald-500/20 text-slate-400 hover:text-emerald-400 rounded-xl border border-slate-800 transition-all font-black text-lg active:scale-90">+</button>
-                                    </div>
-                                </div>
-                            </Card>
+                            <ProductCard
+                                key={prod.id}
+                                prod={prod}
+                                settings={settings}
+                                onEdit={openEdit}
+                                onDelete={deleteProduct}
+                                onAdjustStock={(id) => setQuickAdjustProduct(products.find(p => p.id === id) || null)}
+                                onViewHistory={(p) => { setHistoryProduct(p); setIsHistoryDrawerOpen(true); }}
+                                getCategoryStyles={getCategoryStyles}
+                            />
                         ))}
                     </div>
                 </>
             ) : (
-                <Card className="flex-1 overflow-hidden flex flex-col p-0 border-slate-800 rounded-3xl shadow-2xl">
-                    <div className="p-8 border-b border-slate-800 flex justify-between items-center bg-slate-900/40">
-                        <h3 className="text-base font-black text-white uppercase tracking-widest flex items-center gap-3">
-                            <div className="p-2 bg-emerald-500/10 rounded-xl text-emerald-400 shadow-inner">
-                                <History size={20} />
-                            </div>
-                            Histórico de Movimentações
-                        </h3>
-                        <div className="px-4 py-2 bg-slate-950 rounded-xl border border-slate-800 text-[10px] text-slate-500 font-black uppercase tracking-widest shadow-inner">
-                            Últimas {stockMovements.length} operações
-                        </div>
-                    </div>
-                    <div className="flex-1 overflow-y-auto custom-scrollbar">
-                        <table className="w-full text-left border-collapse">
-                            <thead className="sticky top-0 bg-slate-950 z-10">
-                                <tr className="border-b border-slate-800">
-                                    <th className="px-8 py-5 text-[10px] font-black text-slate-500 uppercase tracking-widest">Data/Hora</th>
-                                    <th className="px-8 py-5 text-[10px] font-black text-slate-500 uppercase tracking-widest">Produto</th>
-                                    <th className="px-8 py-5 text-[10px] font-black text-slate-500 uppercase tracking-widest">Tipo</th>
-                                    <th className="px-8 py-5 text-[10px] font-black text-slate-500 uppercase tracking-widest text-right">Quantidade</th>
-                                    <th className="px-8 py-5 text-[10px] font-black text-slate-500 uppercase tracking-widest">Motivo/Origem</th>
-                                    <th className="px-8 py-5 text-[10px] font-black text-slate-500 uppercase tracking-widest">Usuário</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-800/50">
-                                {stockMovements.length === 0 ? (
-                                    <tr>
-                                        <td colSpan={6} className="px-8 py-32 text-center">
-                                            <div className="flex flex-col items-center gap-4 text-slate-600">
-                                                <div className="p-6 bg-slate-900/50 rounded-full border border-slate-800 shadow-inner">
-                                                    <History size={64} className="opacity-20" />
-                                                </div>
-                                                <p className="text-base font-black uppercase tracking-widest opacity-50">Nenhuma movimentação registrada</p>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ) : (
-                                    stockMovements.map(mov => (
-                                        <tr key={mov.id} className="hover:bg-slate-900/30 transition-colors group">
-                                            <td className="px-8 py-5">
-                                                <div className="text-xs font-black text-slate-300">{new Date(mov.date).toLocaleDateString('pt-BR')}</div>
-                                                <div className="text-[10px] text-slate-500 font-bold uppercase tracking-tighter">{new Date(mov.date).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</div>
-                                            </td>
-                                            <td className="px-8 py-5">
-                                                <div className="text-xs font-black text-white group-hover:text-emerald-400 transition-colors">{mov.productName}</div>
-                                            </td>
-                                            <td className="px-8 py-5">
-                                                <span className={`px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border ${mov.type === 'in' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border-rose-500/20'}`}>
-                                                    {mov.type === 'in' ? 'Entrada' : 'Saída'}
-                                                </span>
-                                            </td>
-                                            <td className="px-8 py-5 text-right">
-                                                <div className={`text-xs font-black ${mov.type === 'in' ? 'text-emerald-400' : 'text-rose-400'}`}>
-                                                    {mov.type === 'in' ? '+' : '-'}{formatNumber(mov.quantity)}
-                                                    <span className="ml-1.5 text-[10px] text-slate-500 uppercase font-black">{mov.quantityUnit}</span>
-                                                </div>
-                                            </td>
-                                            <td className="px-8 py-5">
-                                                <div className="text-[11px] text-slate-400 font-bold max-w-[250px] truncate">{mov.reason || 'Ajuste manual'}</div>
-                                            </td>
-                                            <td className="px-8 py-5">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="w-8 h-8 rounded-xl bg-slate-800 flex items-center justify-center text-[11px] font-black text-emerald-400 border border-slate-700 shadow-inner">
-                                                        {mov.user?.substring(0, 1).toUpperCase()}
-                                                    </div>
-                                                    <span className="text-xs text-slate-300 font-black">{mov.user}</span>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
-                </Card>
+                <MovementsLedger stockMovements={stockMovements} />
             )}
+
+            <AuditForm
+                isOpen={isProductFormOpen}
+                editingProductId={editingProductId}
+                productForm={productForm}
+                setProductForm={setProductForm}
+                activeFormZone={activeFormZone}
+                setActiveFormZone={setActiveFormZone}
+                onClose={() => setIsProductFormOpen(false)}
+                onSubmit={handleProductSubmit}
+                settings={settings}
+            />
+
+            {quickAdjustProduct && (
+                <QuickAdjustPopover
+                    product={quickAdjustProduct}
+                    onClose={() => setQuickAdjustProduct(null)}
+                    onAdjust={handleQuickAdjust}
+                    collaborators={collaborators}
+                    properties={properties}
+                    plots={plots}
+                    settings={settings}
+                />
+            )}
+
+            <AdvancedFilters
+                isOpen={isAdvancedFiltersOpen}
+                onClose={() => setIsAdvancedFiltersOpen(false)}
+                filters={advancedFilters}
+                setFilters={setAdvancedFilters}
+                onClear={() => setAdvancedFilters(initialFilters)}
+            />
+
+            {historyProduct && (
+                <ProductHistoryDrawer
+                    isOpen={isHistoryDrawerOpen}
+                    onClose={() => setIsHistoryDrawerOpen(false)}
+                    product={historyProduct}
+                    movements={stockMovements}
+                />
+            )}
+
+            <BulkAuditForm
+                isOpen={isBulkEntryOpen}
+                onClose={() => setIsBulkEntryOpen(false)}
+                onSubmit={handleBulkSubmit}
+                settings={settings}
+                existingProducts={products}
+            />
         </div>
     );
 };

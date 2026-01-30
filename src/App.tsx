@@ -23,7 +23,6 @@ import { CollaboratorsPage } from './pages/collaborators/CollaboratorsPage';
 import { ClientsPage } from './pages/clients/ClientsPage';
 import { SuppliersPage } from './pages/suppliers/SuppliersPage';
 import { ProductsPage } from './pages/products/ProductsPage';
-import { InventoryPage } from './pages/inventory/InventoryPage';
 import { InventoryReportPage } from './pages/reports/InventoryReportPage';
 import { FinancePage } from './pages/finance/FinancePage';
 import { FinancialReportPage } from './pages/reports/FinancialReportPage';
@@ -118,7 +117,6 @@ function MainContent() {
 
     { id: 'field_applications', label: 'Aplicações', icon: <Tractor size={20} />, category: 'Operacional' },
     { id: 'products', label: 'Produtos', icon: <Package size={20} />, category: 'Operacional' },
-    { id: 'inventory', label: 'Inventário', icon: <ClipboardCheck size={20} />, category: 'Operacional' },
     { id: 'suppliers', label: 'Fornecedores', icon: <Truck size={20} />, category: 'Operacional' },
     { id: 'clients', label: 'Clientes', icon: <Users size={20} />, category: 'Operacional' },
 
@@ -246,7 +244,6 @@ function MainContent() {
           {activeTab === 'clients' && <ClientsPage />}
           {activeTab === 'suppliers' && <SuppliersPage />}
           {activeTab === 'products' && <ProductsPage />}
-          {activeTab === 'inventory' && <InventoryPage />}
           {activeTab === 'inventReport' && <InventoryReportPage />}
           {activeTab === 'finance' && <FinancePage />}
           {activeTab === 'finReport' && <FinancialReportPage />}
