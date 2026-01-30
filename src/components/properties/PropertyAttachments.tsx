@@ -109,9 +109,9 @@ export const PropertyAttachments: React.FC<PropertyAttachmentsProps> = ({
                 onDrop={handleDrop}
                 onClick={() => fileInputRef.current?.click()}
                 className={`
-                    border-2 border-dashed rounded-2xl p-8 transition-all cursor-pointer
+                    border-px border-dashed rounded-none p-8 transition-all cursor-pointer
                     flex flex-col items-center justify-center gap-3
-                    ${isDragging ? 'border-emerald-500 bg-emerald-500/10' : 'border-slate-800 hover:border-slate-700 bg-slate-900/50'}
+                    ${isDragging ? 'border-emerald-500 bg-emerald-500/10' : 'border-slate-800 hover:border-slate-700 bg-slate-950'}
                 `}
             >
                 <input
@@ -122,7 +122,7 @@ export const PropertyAttachments: React.FC<PropertyAttachmentsProps> = ({
                     className="hidden"
                     accept=".jpg,.jpeg,.png,.webp,.pdf"
                 />
-                <div className="p-4 bg-slate-800 rounded-full text-slate-400">
+                <div className="p-4 bg-slate-900 border border-slate-800 text-slate-400 group-hover:text-emerald-500 transition-colors">
                     {isUploading ? <Loader2 className="animate-spin" size={32} /> : <Upload size={32} />}
                 </div>
                 <div className="text-center">
@@ -135,7 +135,7 @@ export const PropertyAttachments: React.FC<PropertyAttachmentsProps> = ({
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                     {/* Existing Attachments */}
                     {existingAttachments.map((file) => (
-                        <div key={file.id} className="group relative bg-slate-900 border border-slate-800 rounded-xl overflow-hidden aspect-square">
+                        <div key={file.id} className="group relative bg-slate-950 border border-slate-800 rounded-none overflow-hidden aspect-square">
                             {file.type.startsWith('image/') ? (
                                 <img src={file.url} alt={file.name} className="w-full h-full object-cover" />
                             ) : (
@@ -149,7 +149,7 @@ export const PropertyAttachments: React.FC<PropertyAttachmentsProps> = ({
                                     href={file.url}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="p-1.5 bg-emerald-500 text-emerald-950 rounded-lg hover:bg-emerald-400 transition-all shrink-0"
+                                    className="p-1.5 bg-emerald-500 text-emerald-950 rounded-none hover:bg-emerald-400 transition-all shrink-0"
                                     title="Visualizar"
                                 >
                                     <ExternalLink size={14} />
@@ -178,7 +178,7 @@ export const PropertyAttachments: React.FC<PropertyAttachmentsProps> = ({
                                         e.stopPropagation();
                                         onRemoveExisting(file.id);
                                     }}
-                                    className="p-1.5 bg-rose-500 text-white rounded-lg hover:bg-rose-600 transition-all shrink-0"
+                                    className="p-1.5 bg-rose-500 text-white rounded-none hover:bg-rose-600 transition-all shrink-0"
                                     title="Remover"
                                 >
                                     <X size={14} />
@@ -189,7 +189,7 @@ export const PropertyAttachments: React.FC<PropertyAttachmentsProps> = ({
 
                     {/* Pending Files */}
                     {pendingFiles.map((item) => (
-                        <div key={item.id} className="group relative bg-slate-900 border border-emerald-500/30 rounded-xl overflow-hidden aspect-square">
+                        <div key={item.id} className="group relative bg-slate-950 border border-emerald-500/30 rounded-none overflow-hidden aspect-square">
                             {item.file.type.startsWith('image/') ? (
                                 <img src={item.preview} alt={item.file.name} className="w-full h-full object-cover opacity-60" />
                             ) : (

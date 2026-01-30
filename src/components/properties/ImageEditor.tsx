@@ -192,32 +192,30 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({ image, onSave, onCance
     };
 
     return (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 sm:p-12 overflow-auto bg-slate-950/20 backdrop-blur-sm">
-            {/* Main Modal Container - Using max-height and min-height for zoom stability */}
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 sm:p-12 overflow-auto bg-slate-950/80 backdrop-blur-md">
             <div
-                className="bg-slate-900 w-full max-w-[1100px] min-h-[500px] h-full max-h-[850px] flex flex-col rounded-[2.5rem] overflow-hidden shadow-[0_0_100px_rgba(0,0,0,0.7)] ring-2 ring-slate-800/60 ring-inset relative shrink-0 isolate"
+                className="bg-slate-900 w-full max-w-[1100px] min-h-[500px] h-full max-h-[850px] flex flex-col border border-slate-800 relative isolate"
                 style={{ transform: 'translateZ(0)' }}
             >
-
                 {/* Header */}
-                <header className="h-20 flex items-center justify-between px-8 border-b border-slate-800/60 bg-slate-900 shrink-0 z-10">
+                <header className="h-20 flex items-center justify-between px-8 border-b border-slate-800 bg-slate-950 shrink-0 z-10">
                     <div className="flex items-center gap-6">
                         <div className="space-y-1">
-                            <h3 className="text-lg font-bold text-white tracking-tight flex items-center gap-2">
+                            <h3 className="text-lg font-black text-white uppercase tracking-tighter flex items-center gap-2">
                                 <Maximize size={18} className="text-emerald-500" />
-                                Editor de Imagem
+                                PROCESSAMENTO DE IMAGEM
                             </h3>
-                            <p className="text-[10px] text-slate-500 font-semibold uppercase tracking-widest">Ajustes e Transformações</p>
+                            <p className="text-[10px] text-slate-500 font-mono uppercase tracking-widest">Ajustes e Transformações Técnicas</p>
                         </div>
 
                         <div className="h-8 w-px bg-slate-800" />
 
-                        <div className="flex items-center gap-1.5 bg-slate-950/40 p-1 rounded-2xl border border-slate-800/40">
+                        <div className="flex items-center gap-1.5 bg-slate-900 p-1 border border-slate-800">
                             <button
                                 type="button"
                                 onClick={handleUndo}
                                 disabled={historyIndex <= 0 || isProcessing}
-                                className="p-2.5 hover:bg-slate-800 rounded-xl text-slate-400 hover:text-white disabled:opacity-20 transition-all"
+                                className="p-2.5 hover:bg-slate-800 text-slate-400 hover:text-white disabled:opacity-10 transition-all"
                                 title="Desfazer"
                             >
                                 <Undo2 size={18} />
@@ -226,7 +224,7 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({ image, onSave, onCance
                                 type="button"
                                 onClick={handleRedo}
                                 disabled={historyIndex >= history.length - 1 || isProcessing}
-                                className="p-2.5 hover:bg-slate-800 rounded-xl text-slate-400 hover:text-white disabled:opacity-20 transition-all"
+                                className="p-2.5 hover:bg-slate-800 text-slate-400 hover:text-white disabled:opacity-10 transition-all"
                                 title="Refazer"
                             >
                                 <Redo2 size={18} />
@@ -238,7 +236,7 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({ image, onSave, onCance
                         type="button"
                         onClick={onCancel}
                         disabled={isProcessing}
-                        className="p-3 bg-slate-800/40 hover:bg-rose-500/10 text-slate-400 hover:text-rose-500 rounded-2xl transition-all border border-slate-800/40"
+                        className="p-3 bg-slate-800 hover:bg-rose-500/20 text-slate-400 hover:text-rose-500 transition-all border border-slate-700"
                     >
                         <X size={20} />
                     </button>
@@ -246,10 +244,9 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({ image, onSave, onCance
 
                 {/* Body Content */}
                 <div className="flex-1 flex min-h-0 overflow-hidden">
-
                     {/* Left Side: Image Editor Area */}
                     <div className="flex-1 relative bg-slate-950 overflow-hidden flex items-center justify-center p-8">
-                        <div className="w-full h-full rounded-3xl overflow-hidden relative border border-slate-800/30 shadow-2xl bg-[#020617]">
+                        <div className="w-full h-full border border-slate-800/30 bg-[#020617] relative">
                             <Cropper
                                 image={image}
                                 crop={crop}
@@ -281,24 +278,17 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({ image, onSave, onCance
                             <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center z-[100]">
                                 <div className="flex flex-col items-center gap-4">
                                     <Loader2 className="animate-spin text-emerald-500" size={48} />
-                                    <p className="text-emerald-400 font-black text-sm tracking-widest uppercase">Processando</p>
+                                    <p className="text-emerald-400 font-black text-xs tracking-widest uppercase">Processando Metadados</p>
                                 </div>
                             </div>
                         )}
                     </div>
 
                     {/* Right Side: Sidebar Controls */}
-                    <aside
-                        className="w-[320px] bg-slate-900 border-l border-slate-800/60 p-6 overflow-y-auto flex flex-col gap-6 shrink-0 z-10"
-                        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-                    >
-                        <style dangerouslySetInnerHTML={{
-                            __html: `
-                            aside::-webkit-scrollbar { display: none; }
-                        ` }} />
+                    <aside className="w-[320px] bg-slate-900 border-l border-slate-800 p-6 overflow-y-auto flex flex-col gap-8 shrink-0 z-10 custom-scrollbar">
                         <div className="space-y-4">
-                            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Transformação</p>
-                            <div className="grid grid-cols-2 gap-2.5">
+                            <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Transformação</p>
+                            <div className="grid grid-cols-2 gap-px bg-slate-800 border border-slate-800">
                                 <button
                                     type="button"
                                     onClick={() => {
@@ -306,10 +296,10 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({ image, onSave, onCance
                                         setRotation(nextRot);
                                         saveToHistory({ ...currentState, rotation: nextRot });
                                     }}
-                                    className="p-3 bg-slate-800/40 hover:bg-emerald-500/10 border border-slate-800/60 hover:border-emerald-500/30 rounded-xl text-slate-300 hover:text-emerald-400 flex flex-col items-center gap-2 transition-all group"
+                                    className="p-4 bg-slate-950 hover:bg-emerald-500/10 text-slate-400 hover:text-emerald-500 flex flex-col items-center gap-2 transition-all group"
                                 >
                                     <RotateCw size={18} className="group-hover:rotate-90 transition-transform duration-300" />
-                                    <span className="text-[9px] font-bold uppercase tracking-wider">Girar</span>
+                                    <span className="text-[9px] font-black uppercase tracking-widest">Girar</span>
                                 </button>
                                 <button
                                     type="button"
@@ -320,10 +310,10 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({ image, onSave, onCance
                                             return nextFlip;
                                         });
                                     }}
-                                    className="p-3 bg-slate-800/40 hover:bg-blue-500/10 border border-slate-800/60 hover:border-blue-500/30 rounded-xl text-slate-300 hover:text-blue-400 flex flex-col items-center gap-2 transition-all"
+                                    className="p-4 bg-slate-950 hover:bg-blue-500/10 text-slate-400 hover:text-blue-400 flex flex-col items-center gap-2 transition-all"
                                 >
                                     <FlipHorizontal size={18} />
-                                    <span className="text-[9px] font-bold uppercase tracking-wider">Inverter</span>
+                                    <span className="text-[9px] font-black uppercase tracking-widest">Espelhar</span>
                                 </button>
                                 <button
                                     type="button"
@@ -332,10 +322,10 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({ image, onSave, onCance
                                         setZoom(nextZoom);
                                         saveToHistory({ ...currentState, zoom: nextZoom });
                                     }}
-                                    className="p-3 bg-slate-800/40 hover:bg-slate-700 border border-slate-800/60 rounded-xl text-slate-300 flex flex-col items-center gap-2 transition-all"
+                                    className="p-4 bg-slate-950 hover:bg-slate-800 text-slate-400 flex flex-col items-center gap-2 transition-all"
                                 >
                                     <ZoomOut size={18} />
-                                    <span className="text-[9px] font-bold uppercase tracking-wider">Zoom Out</span>
+                                    <span className="text-[9px] font-black uppercase tracking-widest">Reduzir</span>
                                 </button>
                                 <button
                                     type="button"
@@ -344,75 +334,68 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({ image, onSave, onCance
                                         setZoom(nextZoom);
                                         saveToHistory({ ...currentState, zoom: nextZoom });
                                     }}
-                                    className="p-3 bg-slate-800/40 hover:bg-slate-700 border border-slate-800/60 rounded-xl text-slate-300 flex flex-col items-center gap-2 transition-all"
+                                    className="p-4 bg-slate-950 hover:bg-slate-800 text-slate-400 flex flex-col items-center gap-2 transition-all"
                                 >
                                     <ZoomIn size={18} />
-                                    <span className="text-[9px] font-bold uppercase tracking-wider">Zoom In</span>
+                                    <span className="text-[9px] font-black uppercase tracking-widest">Ampliaria</span>
                                 </button>
                             </div>
                         </div>
 
-                        {/* Color Adjustments Group */}
                         <div className="space-y-8">
-                            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Ajustes de Cor</p>
-
+                            <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Ajustes Analíticos</p>
                             {[
-                                { label: 'Brilho', icon: Sun, value: brightness, type: 'brightness', color: 'text-amber-400', accent: 'accent-amber-500' },
-                                { label: 'Contraste', icon: Contrast, value: contrast, type: 'contrast', color: 'text-blue-400', accent: 'accent-blue-500' },
-                                { label: 'Saturação', icon: Maximize, value: saturation, type: 'saturation', color: 'text-rose-400', accent: 'accent-rose-500' }
+                                { label: 'Brilho', icon: Sun, value: brightness, type: 'brightness', color: 'text-emerald-500', accent: 'accent-emerald-500' },
+                                { label: 'Contraste', icon: Contrast, value: contrast, type: 'contrast', color: 'text-amber-500', accent: 'accent-amber-500' },
+                                { label: 'Saturação', icon: Maximize, value: saturation, type: 'saturation', color: 'text-blue-500', accent: 'accent-blue-500' }
                             ].map((adj) => (
                                 <div key={adj.type} className="space-y-4">
                                     <div className="flex justify-between items-center">
-                                        <label className="text-xs font-bold text-slate-300 flex items-center gap-2.5">
+                                        <label className="text-[10px] font-black text-slate-300 uppercase tracking-widest flex items-center gap-2.5">
                                             <adj.icon size={14} className={adj.color} />
                                             {adj.label}
                                         </label>
-                                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-800 border border-slate-700 ${adj.color}`}>
-                                            {adj.value}%
-                                        </span>
+                                        <span className="font-mono text-[10px] text-white font-bold">{adj.value}%</span>
                                     </div>
                                     <input
                                         type="range" min="0" max="200" value={adj.value}
                                         onChange={e => handleSliderChange(adj.type, parseInt(e.target.value))}
                                         onMouseUp={handleSliderRelease}
                                         onTouchEnd={handleSliderRelease}
-                                        className={`w-full h-1.5 bg-slate-800 rounded-full appearance-none cursor-pointer ${adj.accent} transition-all`}
+                                        className={`w-full h-1 bg-slate-800 rounded-none appearance-none cursor-pointer ${adj.accent} transition-all`}
                                     />
                                 </div>
                             ))}
                         </div>
 
-                        {/* Reset Action */}
-                        <div className="mt-auto pt-6 border-t border-slate-800/40">
-                            <button
-                                type="button"
-                                onClick={resetFilters}
-                                className="w-full py-4 bg-rose-500/5 hover:bg-rose-500/10 border border-rose-500/20 hover:border-rose-500/40 text-rose-400 rounded-2xl text-[10px] font-bold tracking-widest flex items-center justify-center gap-2.5 transition-all uppercase"
-                            >
-                                <RotateCcw size={14} /> Restaurar Original
-                            </button>
-                        </div>
+                        <button
+                            type="button"
+                            onClick={resetFilters}
+                            className="w-full py-4 mt-auto bg-slate-950 border border-slate-800 text-slate-500 text-[10px] font-black tracking-[0.2em] hover:text-rose-500 hover:border-rose-500/30 transition-all uppercase flex items-center justify-center gap-3"
+                        >
+                            <RotateCcw size={14} /> Restaurar Perfil Original
+                        </button>
                     </aside>
                 </div>
 
                 {/* Footer Actions */}
-                <footer className="h-24 flex items-center justify-end px-8 gap-4 border-t border-slate-800/60 bg-slate-900 shrink-0 z-10">
+                <footer className="h-24 flex items-center justify-end px-8 gap-px bg-slate-800 border-t border-slate-800 shrink-0 z-10">
                     <button
                         type="button"
                         onClick={onCancel}
                         disabled={isProcessing}
-                        className="px-8 py-3.5 rounded-2xl bg-slate-800/60 text-slate-300 font-bold text-xs tracking-widest hover:bg-slate-800 transition-all uppercase border border-slate-700/30"
+                        className="px-10 h-full bg-slate-950 text-slate-500 font-black text-[10px] tracking-[0.2em] hover:text-white transition-all uppercase"
                     >
-                        Cancelar
+                        Descartar Operação
                     </button>
                     <button
                         type="button"
                         onClick={handleSave}
                         disabled={isProcessing}
-                        className="px-12 py-3.5 rounded-2xl bg-emerald-500 text-emerald-950 font-black text-xs tracking-widest hover:bg-emerald-400 transition-all shadow-lg flex items-center gap-3 uppercase"
+                        className="flex-1 max-w-[300px] h-full bg-emerald-500 text-emerald-950 font-black text-xs tracking-[0.1em] hover:bg-emerald-400 transition-all flex items-center justify-center gap-3 uppercase"
                     >
                         {isProcessing ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
-                        {isProcessing ? 'Salvando...' : 'Salvar Edição'}
+                        {isProcessing ? 'Gravando Alterações...' : 'Confirmar e Salvar'}
                     </button>
                 </footer>
             </div>
