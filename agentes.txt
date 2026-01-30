@@ -15,7 +15,7 @@ Perf-Optimizer: Melhora velocidade e recursos.
 Product-Mgr: Requisitos e visão do produto.
 Proj-Planner: Cronograma e escopo.
 QA-Auto: Scripts de teste automático.
-Security: Auditoria e boas práticas.
+Security: Auditoria e boas práticas. 
 SEO-Spec: Otimização de busca.
 Test-Eng: Testes manuais e qualidade.
 
