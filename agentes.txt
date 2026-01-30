@@ -1,0 +1,33 @@
+-- AGENTES (ESPECIALISTAS) --
+Backend: Lógica de servidor, APIs e regras.
+Archaeologist: Analisa e mapeia código antigo/legado.
+DB-Architect: Modelagem de dados e SQL.
+Debugger: Corrige erros e bugs rapidamente.
+DevOps: Deploy, infra e automação.
+Doc-Writer: Documentação e manuais.
+Explorer: Pesquisa de novas tecnologias.
+Frontend: Interface e UX/UI.
+Game-Dev: Lógica e mecânica de jogos.
+Mobile: Apps iOS e Android.
+Orchestrator: Gere múltiplos agentes/tarefas.
+Pen-Tester: Busca brechas de invasão.
+Perf-Optimizer: Melhora velocidade e recursos.
+Product-Mgr: Requisitos e visão do produto.
+Proj-Planner: Cronograma e escopo.
+QA-Auto: Scripts de teste automático.
+Security: Auditoria e boas práticas.
+SEO-Spec: Otimização de busca.
+Test-Eng: Testes manuais e qualidade.
+
+-- WORKFLOWS (PROCESSOS) --
+Brainstorm: Ideias e soluções.
+Create: Código novo ou novas features.
+Debug: Fluxo de correção de erros.
+Deploy: Envio para produção/servidor.
+Enhance: Refatoração e melhorias.
+Orchestrate: Coordena grandes entregas.
+Plan: Passo a passo antes de agir.
+Preview: Revisão antes da entrega.
+Status: Relatório de progresso.
+Test: Bateria de testes e validação.
+UI-UX-Max: Design e interface premium.

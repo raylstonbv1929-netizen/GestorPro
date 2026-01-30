@@ -1,12 +1,40 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     Wallet, DollarSign, Package, Truck, ChevronRight,
-    ClipboardList, ArrowUpRight, AlertCircle, Clock
+    ClipboardList, ArrowUpRight, AlertCircle, Clock,
+    TrendingUp, TrendingDown, Target
 } from 'lucide-react';
 import { useApp } from '../../contexts/AppContext';
 import { Card } from '../../components/common/Card';
 import { SimpleBarChart } from '../../components/common/SimpleBarChart';
 import { formatCurrency, formatNumber } from '../../utils/format';
+
+const CountUp = ({ value, currency }: { value: number, currency: string }) => {
+    const [count, setCount] = useState(0);
+
+    useEffect(() => {
+        let start = 0;
+        const end = value;
+        if (start === end) return;
+
+        let totalMiliseconds = 1000;
+        let incrementTime = (totalMiliseconds / end) * 5;
+
+        let timer = setInterval(() => {
+            start += Math.max(1, Math.floor(end / 100));
+            if (start >= end) {
+                setCount(end);
+                clearInterval(timer);
+            } else {
+                setCount(start);
+            }
+        }, 10);
+
+        return () => clearInterval(timer);
+    }, [value]);
+
+    return <span>{formatCurrency(count, currency)}</span>;
+};
 
 export const DashboardPage = () => {
     const {
@@ -18,10 +46,10 @@ export const DashboardPage = () => {
     const totalExpense = transactions.filter(t => t.type === 'expense').reduce((acc, curr) => acc + curr.amount, 0);
     const balance = totalIncome - totalExpense;
 
-    const chartData: any[] = [
-        { label: 'Receita', value: totalIncome, type: 'income' },
-        { label: 'Despesa', value: totalExpense, type: 'expense' },
-        { label: 'Saldo', value: Math.max(0, balance), type: 'income' }
+    const chartData: { label: string, value: number, type: 'income' | 'expense' | 'neutral' }[] = [
+        { label: 'Entradas', value: totalIncome, type: 'income' },
+        { label: 'Saídas', value: totalExpense, type: 'expense' },
+        { label: 'Patrimônio', value: Math.max(0, balance), type: 'income' }
     ];
 
     const pendingTasksCount = tasks.filter(t => !t.done).length;
@@ -41,148 +69,147 @@ export const DashboardPage = () => {
     };
 
     return (
-        <div className="space-y-6 animate-fade-in">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <Card variant="highlight" glow className="lg:col-span-1 relative group">
-                    <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                        <Wallet size={80} />
-                    </div>
-                    <div className="flex justify-between items-start mb-4">
-                        <div>
-                            <p className="text-slate-400 text-sm font-medium uppercase tracking-wider">Saldo Líquido</p>
-                            <h2 className="text-4xl font-bold text-white mt-1">{formatCurrency(balance, settings.currency)}</h2>
+        <div className="space-y-8 animate-fade-in pb-10">
+            {/* Header Financeiro - O Coração do Dashboard */}
+            <div className="relative">
+                <div className="absolute -inset-1 bg-gradient-to-r from-emerald-500/20 to-blue-500/20 blur-2xl opacity-30 rounded-full"></div>
+                <Card variant="highlight" glow rounded="rounded-[4px]" className="relative border-slate-700/50 overflow-visible group">
+                    <div className="absolute -top-px left-10 right-10 h-px bg-gradient-to-r from-transparent via-emerald-500/40 to-transparent"></div>
+
+                    <div className="flex flex-col lg:flex-row gap-10 items-center justify-between">
+                        <div className="flex-1 w-full">
+                            <div className="flex items-center gap-3 mb-2">
+                                <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)]"></span>
+                                <p className="text-slate-500 text-xs font-bold uppercase tracking-[0.2em]">Fluxo de Caixa Consolidado</p>
+                            </div>
+                            <h2 className="text-6xl md:text-7xl font-black text-white tracking-tighter mb-4 flex items-baseline gap-2">
+                                <CountUp value={balance} currency={settings.currency} />
+                                <span className="text-xs font-medium text-emerald-500/60 tracking-normal hidden md:inline-block uppercase">Balanço Atualizado</span>
+                            </h2>
+
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-6 mt-8">
+                                <div className="space-y-1">
+                                    <p className="text-slate-500 text-[10px] uppercase font-bold tracking-wider">Total Entradas</p>
+                                    <p className="text-xl font-bold text-emerald-400 flex items-center gap-2">
+                                        <TrendingUp size={16} />
+                                        {formatCurrency(totalIncome, settings.currency)}
+                                    </p>
+                                </div>
+                                <div className="space-y-1">
+                                    <p className="text-slate-500 text-[10px] uppercase font-bold tracking-wider">Total Saídas</p>
+                                    <p className="text-xl font-bold text-rose-400 flex items-center gap-2">
+                                        <TrendingDown size={16} />
+                                        {formatCurrency(totalExpense, settings.currency)}
+                                    </p>
+                                </div>
+                                <div className="hidden md:block bg-slate-900/40 p-3 rounded border border-slate-800/60">
+                                    <div className="flex justify-between items-center mb-1">
+                                        <span className="text-[10px] text-slate-500 uppercase font-bold">Meta Mensal</span>
+                                        <span className="text-[10px] text-emerald-400 font-bold">82%</span>
+                                    </div>
+                                    <div className="w-full bg-slate-800 h-1 rounded-full overflow-hidden">
+                                        <div className="bg-emerald-500 h-full w-[82%] shadow-[0_0_8px_rgba(16,185,129,0.4)]"></div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                        <div className="bg-emerald-500/20 p-2 rounded-lg border border-emerald-500/20 group-hover:bg-emerald-500/30 transition-colors">
-                            <DollarSign className="text-emerald-400" size={24} />
-                        </div>
-                    </div>
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2 text-emerald-400 text-sm font-bold bg-emerald-500/10 py-1 px-2 rounded">
-                            <ArrowUpRight size={16} />
-                            <span>Fluxo Mensal</span>
-                        </div>
-                        <div className="w-32">
+
+                        <div className="w-full lg:w-72 bg-slate-950/40 p-6 border border-slate-800/50 rounded-[2px] relative group-hover:border-emerald-500/20 transition-colors">
+                            <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_120%,rgba(16,185,129,0.05),transparent)] pointer-events-none"></div>
+                            <h4 className="text-[10px] text-slate-500 uppercase font-black tracking-widest mb-4 flex items-center gap-2">
+                                <Target size={12} />
+                                Distribuição de Capital
+                            </h4>
                             <SimpleBarChart data={chartData} />
                         </div>
                     </div>
                 </Card>
-
-                <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-6">
-                    <Card className="flex flex-col justify-between">
-                        <div className="flex justify-between items-start">
-                            <div>
-                                <p className="text-slate-400 text-sm font-medium uppercase">Produtos em Estoque</p>
-                                <h3 className="text-3xl font-bold text-white mt-1">{products.length} <span className="text-base text-slate-500 font-normal">itens</span></h3>
-                            </div>
-                            <Package className="text-blue-400 group-hover:scale-110 transition-transform" size={28} />
-                        </div>
-                        <div className="mt-4 pt-4 border-t border-slate-700/50 flex flex-col gap-2">
-                            {products.slice(0, 3).map(p => (
-                                <div key={p.id} className="flex justify-between items-center text-sm">
-                                    <span className="text-slate-300">{p.name}</span>
-                                    <span className={`font-medium ${p.status === 'critical' ? 'text-rose-400' : p.status === 'low' ? 'text-amber-400' : 'text-emerald-400'}`}>
-                                        {formatNumber(p.stock)} {p.unit}
-                                    </span>
-                                </div>
-                            ))}
-                        </div>
-                    </Card>
-
-                    <Card className="flex flex-col justify-between">
-                        <div className="flex justify-between items-start">
-                            <div>
-                                <p className="text-slate-400 text-sm font-medium uppercase">Fornecedores Ativos</p>
-                                <h3 className="text-3xl font-bold text-white mt-1">{suppliers.filter(s => s.status === 'active').length} <span className="text-base text-slate-500 font-normal">parceiros</span></h3>
-                            </div>
-                            <Truck className="text-purple-400 group-hover:scale-110 transition-transform" size={28} />
-                        </div>
-                        <div className="mt-4 space-y-3">
-                            {suppliers.filter(s => s.status === 'active').slice(0, 2).map(s => (
-                                <div key={s.id} onClick={() => setActiveTab('suppliers')} className="flex items-center justify-between p-2 rounded-lg bg-slate-800/50 hover:bg-slate-800 transition-colors cursor-pointer group">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-8 h-8 rounded bg-slate-700 flex items-center justify-center text-xs font-bold text-slate-300 group-hover:text-white group-hover:bg-purple-500/20 group-hover:border group-hover:border-purple-500/30 transition-all">
-                                            {s.name.substring(0, 2).toUpperCase()}
-                                        </div>
-                                        <div>
-                                            <p className="text-sm font-medium text-slate-200">{s.name}</p>
-                                            <p className="text-[10px] text-slate-500 uppercase">{s.category}</p>
-                                        </div>
-                                    </div>
-                                    <ChevronRight size={14} className="text-slate-600 group-hover:text-purple-400" />
-                                </div>
-                            ))}
-                        </div>
-                    </Card>
-                </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <Card className="lg:col-span-2 flex flex-col relative overflow-hidden group hover:border-emerald-500/30 transition-all">
-                    <div className="flex justify-between items-start mb-6 z-10">
+            {/* Grid Secundário - Limpo e Técnico */}
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                {/* Estoque e Fornecedores em cards menores */}
+                <div className="lg:col-span-1 space-y-6">
+                    <Card rounded="rounded-[2px]" className="group hover:border-blue-500/30">
+                        <div className="flex justify-between items-center mb-2">
+                            <Package className="text-blue-500/50" size={18} />
+                            <span className="text-xs font-black text-blue-500/40 tracking-tighter">STOCK_MS</span>
+                        </div>
+                        <p className="text-slate-500 text-[10px] uppercase font-bold">Produtos Ativos</p>
+                        <h3 className="text-3xl font-black text-white mt-1 group-hover:text-blue-400 transition-colors">{products.length}</h3>
+                        <div className="mt-4 flex gap-1 h-1">
+                            <div className="flex-1 bg-blue-500/40"></div>
+                            <div className="flex-1 bg-blue-500/20"></div>
+                            <div className="flex-1 bg-slate-800"></div>
+                        </div>
+                    </Card>
+
+                    <Card rounded="rounded-[2px]" className="group hover:border-amber-500/30">
+                        <div className="flex justify-between items-center mb-2">
+                            <Truck className="text-amber-500/50" size={18} />
+                            <span className="text-xs font-black text-amber-500/40 tracking-tighter">SUPP_CH</span>
+                        </div>
+                        <p className="text-slate-500 text-[10px] uppercase font-bold">Cadeia de Fornecimento</p>
+                        <h3 className="text-3xl font-black text-white mt-1 group-hover:text-amber-400 transition-colors">{suppliers.filter(s => s.status === 'active').length}</h3>
+                        <button onClick={() => setActiveTab('suppliers')} className="mt-4 text-[10px] text-slate-500 uppercase font-bold flex items-center gap-1 hover:text-amber-400 transition-colors">
+                            Gerenciar Rede <ChevronRight size={12} />
+                        </button>
+                    </Card>
+                </div>
+
+                {/* Tarefas e Atividades com mais destaque secundário */}
+                <Card rounded="rounded-[2px]" className="lg:col-span-2 flex flex-col group">
+                    <div className="flex justify-between items-center mb-6">
                         <div className="flex items-center gap-3">
-                            <div className="p-2 bg-emerald-500/10 rounded-lg border border-emerald-500/20 group-hover:bg-emerald-500/20 transition-colors">
-                                <ClipboardList size={24} className="text-emerald-400" />
+                            <div className="p-2 bg-slate-900 border border-slate-800 group-hover:border-emerald-500/20 transition-colors">
+                                <ClipboardList size={20} className="text-slate-400 group-hover:text-emerald-400" />
                             </div>
-                            <div>
-                                <h3 className="text-xl font-bold text-white">Gestão de Tarefas</h3>
-                                <p className="text-xs text-slate-400 uppercase tracking-widest mt-0.5">Visão Geral</p>
-                            </div>
+                            <h3 className="text-sm font-black text-white uppercase tracking-widest">Painel de Operações</h3>
                         </div>
                         <button
                             onClick={() => setActiveTab('tasks')}
-                            className="group/btn flex items-center gap-2 text-sm font-bold text-emerald-400 bg-emerald-500/10 px-4 py-2 rounded-xl border border-emerald-500/20 hover:bg-emerald-500/20 transition-all"
+                            className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-3 py-1.5 border border-slate-800 hover:border-emerald-500/40 hover:text-emerald-400 transition-all"
                         >
-                            Abrir Gerenciador
-                            <ArrowUpRight size={16} className="transition-transform group-hover/btn:translate-x-0.5 group-hover/btn:-translate-y-0.5" />
+                            Ver Todas
                         </button>
                     </div>
 
-                    <div className="flex-1 flex flex-col md:flex-row gap-8 items-center z-10">
-                        <div className="flex flex-col justify-center">
-                            <h2 className="text-7xl font-black text-white tracking-tight leading-none">
-                                {pendingTasksCount}
-                            </h2>
-                            <p className="text-slate-400 font-medium text-lg mt-2">tarefas pendentes</p>
+                    <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+                        <div>
+                            <span className="text-5xl font-black text-white leading-none tracking-tighter">{pendingTasksCount}</span>
+                            <p className="text-slate-500 text-xs font-bold uppercase mt-1">Status: Pendente</p>
                         </div>
-
-                        <div className="flex-1 w-full bg-slate-900/50 rounded-2xl p-6 border border-slate-800/50">
-                            <div className="flex items-center justify-between mb-4">
-                                <div className="flex items-center gap-2">
-                                    <AlertCircle size={16} className="text-rose-400" />
-                                    <span className="text-sm font-bold text-slate-300">Alta Prioridade</span>
-                                </div>
-                                <span className="text-lg font-bold text-white">{highPriorityCount}</span>
-                            </div>
-                            <div className="w-full bg-slate-800 rounded-full h-2 mb-6">
-                                <div className="bg-rose-500 h-2 rounded-full" style={{ width: pendingTasksCount > 0 ? `${(highPriorityCount / pendingTasksCount) * 100}%` : '0%' }}></div>
-                            </div>
+                        <div className="space-y-4">
                             <div className="flex items-center justify-between">
-                                <p className="text-xs text-slate-500">Próximo vencimento: <span className="text-slate-300 font-bold">Hoje, 17:00</span></p>
+                                <span className="text-[10px] text-slate-500 uppercase font-black">Prioridade Máxima</span>
+                                <span className="text-xs font-bold text-rose-500">{highPriorityCount}</span>
                             </div>
+                            <div className="w-full bg-slate-900 h-1.5 overflow-hidden">
+                                <div className="bg-rose-500 h-full" style={{ width: pendingTasksCount > 0 ? `${(highPriorityCount / pendingTasksCount) * 100}%` : '0%' }}></div>
+                            </div>
+                            <p className="text-[10px] text-slate-600 font-medium">Análise de risco operacional: Média</p>
                         </div>
                     </div>
                 </Card>
 
-                <div className="flex flex-col gap-6">
-                    <Card className="flex-1 flex flex-col">
-                        <div className="flex items-center gap-2 mb-4 text-slate-300">
-                            <Clock size={18} />
-                            <h4 className="font-bold text-sm uppercase tracking-wider">Atividade Recente</h4>
-                        </div>
-                        <div className="relative pl-2 space-y-6">
-                            <div className="absolute left-2 top-2 bottom-2 w-px bg-slate-800"></div>
-                            {activities.slice(0, 5).map(act => (
-                                <div key={act.id} className="relative pl-6">
-                                    <div className={`absolute left-[3px] top-1.5 w-1.5 h-1.5 rounded-full ring-4 ring-slate-900 ${act.type === 'income' ? 'bg-emerald-500' : act.type === 'expense' ? 'bg-rose-500' : 'bg-slate-600'}`}></div>
-                                    <p className="text-xs text-slate-500 mb-0.5">{formatTime(act.time)}</p>
-                                    <p className="text-sm text-slate-300">
-                                        <span className="font-bold text-emerald-400">{settings.userName}</span> {act.action} <span className="text-white font-medium">{act.target}</span>.
-                                    </p>
-                                </div>
-                            ))}
-                        </div>
-                    </Card>
-                </div>
+                {/* Log de Atividade Lateral */}
+                <Card rounded="rounded-[2px]" variant="glass" className="lg:col-span-1 border-none bg-slate-900/20 shadow-none hover:bg-slate-900/30">
+                    <div className="flex items-center gap-2 mb-6 text-slate-500">
+                        <Clock size={14} />
+                        <h4 className="text-[10px] font-black uppercase tracking-widest">System_Log</h4>
+                    </div>
+                    <div className="space-y-6">
+                        {activities.slice(0, 4).map(act => (
+                            <div key={act.id} className="relative pl-4 border-l border-slate-800">
+                                <div className={`absolute -left-[3.5px] top-1 w-1.5 h-1.5 rounded-full ${act.type === 'income' ? 'bg-emerald-500' : act.type === 'expense' ? 'bg-rose-500' : 'bg-slate-600'}`}></div>
+                                <p className="text-[9px] text-slate-600 font-bold mb-0.5">{formatTime(act.time).toUpperCase()}</p>
+                                <p className="text-[11px] text-slate-400 leading-tight">
+                                    <span className="text-slate-200">{settings.userName}</span>: {act.action} <span className="text-slate-200">{act.target}</span>
+                                </p>
+                            </div>
+                        ))}
+                    </div>
+                </Card>
             </div>
         </div>
     );
