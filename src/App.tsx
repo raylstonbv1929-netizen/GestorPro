@@ -23,9 +23,7 @@ import { CollaboratorsPage } from './pages/collaborators/CollaboratorsPage';
 import { ClientsPage } from './pages/clients/ClientsPage';
 import { SuppliersPage } from './pages/suppliers/SuppliersPage';
 import { ProductsPage } from './pages/products/ProductsPage';
-import { InventoryReportPage } from './pages/reports/InventoryReportPage';
 import { FinancePage } from './pages/finance/FinancePage';
-import { FinancialReportPage } from './pages/reports/FinancialReportPage';
 import { CashFlowPage } from './pages/finance/CashFlowPage';
 import { SettingsPage } from './pages/settings/SettingsPage';
 
@@ -106,8 +104,36 @@ function MainContent() {
   const {
     user, settings, activeTab, setActiveTab, currentDate,
     isFullScreen, toggleFullScreen, isSidebarOpen, setIsSidebarOpen, signOut,
-    isSyncing
+    isSyncing, isLoaded
   } = useApp();
+
+  if (!isLoaded) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center space-y-8 overflow-hidden relative">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-emerald-500/10 via-transparent to-transparent animate-pulse"></div>
+        <div className="relative">
+          <div className="w-24 h-24 rounded-3xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-500 shadow-[0_0_50px_rgba(16,185,129,0.1)]">
+            <RefreshCw size={48} className="animate-spin duration-[3000ms]" />
+          </div>
+          <div className="absolute -top-1 -right-1 w-4 h-4 bg-emerald-500 rounded-full animate-ping"></div>
+        </div>
+        <div className="text-center space-y-3 relative z-10">
+          <h2 className="text-xl font-black text-white uppercase tracking-[0.3em] italic">Sincronização Nativa</h2>
+          <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.5em] animate-pulse">Acessando Núcleo Cloud Supabase...</p>
+        </div>
+        <div className="w-48 h-1 bg-slate-900 rounded-full overflow-hidden relative">
+          <div className="absolute inset-y-0 left-0 bg-emerald-500 animate-[loading_2s_ease-in-out_infinite]"></div>
+        </div>
+        <style>{`
+          @keyframes loading {
+            0% { width: 0%; left: 0%; }
+            50% { width: 100%; left: 0%; }
+            100% { width: 0%; left: 100%; }
+          }
+        `}</style>
+      </div>
+    );
+  }
 
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={20} />, category: 'Geral' },
@@ -123,13 +149,10 @@ function MainContent() {
     { id: 'finance', label: 'Financeiro', icon: <Wallet size={20} />, category: 'Financeiro' },
     { id: 'cashflow', label: 'Fluxo de Caixa', icon: <TrendingUp size={20} />, category: 'Financeiro' },
 
-    { id: 'inventReport', label: 'Rel. Estoque', icon: <FileBarChart size={20} />, category: 'Relatórios' },
-    { id: 'finReport', label: 'Rel. Financeiro', icon: <BarChart3 size={20} />, category: 'Relatórios' },
-
     { id: 'settings', label: 'Configurações', icon: <Settings size={20} />, category: 'Sistema' },
   ];
 
-  const categories = ['Geral', 'Operacional', 'Financeiro', 'Relatórios', 'Sistema'];
+  const categories = ['Geral', 'Operacional', 'Financeiro', 'Sistema'];
 
   return (
     <div className="flex h-screen bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-slate-900 via-slate-950 to-black text-slate-200 font-sans selection:bg-emerald-500/30 overflow-hidden">
@@ -198,9 +221,7 @@ function MainContent() {
           <div>
             <h1 className="text-2xl font-bold text-white tracking-tight">
               {activeTab === 'dashboard' ? 'Visão Geral' :
-                activeTab === 'inventReport' ? 'Relatório de Estoque' :
-                  activeTab === 'finReport' ? 'Relatório Financeiro' :
-                    menuItems.find(m => m.id === activeTab)?.label || 'Sistema'}
+                menuItems.find(m => m.id === activeTab)?.label || 'Sistema'}
             </h1>
             <p className="text-xs text-slate-500 font-medium uppercase tracking-widest mt-0.5">
               {currentDate.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}
@@ -208,12 +229,18 @@ function MainContent() {
           </div>
 
           <div className="flex items-center gap-4">
-            {/* Sync Indicator */}
-            <div className={`flex items-center gap-2 px-3 py-1.5 border border-slate-800 bg-slate-900/50 transition-all duration-500 ${isSyncing ? 'opacity-100' : 'opacity-40'}`}>
-              <RefreshCw size={14} className={`text-emerald-500 ${isSyncing ? 'animate-spin' : ''}`} />
-              <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
-                {isSyncing ? 'Sincronizando' : 'Nuvem OK'}
-              </span>
+            {/* Sync Sentinel Indicator */}
+            <div className={`flex items-center gap-3 px-4 py-2 border transition-all duration-700 ${isSyncing ? 'border-emerald-500 bg-emerald-500/10 shadow-[0_0_20px_rgba(16,185,129,0.1)]' : 'border-slate-800 bg-slate-900/50 opacity-60'}`}>
+              <div className="relative">
+                <RefreshCw size={14} className={`text-emerald-500 ${isSyncing ? 'animate-spin' : ''}`} />
+                {isSyncing && <div className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-emerald-400 rounded-full animate-ping"></div>}
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[9px] font-black uppercase tracking-widest text-white leading-none">
+                  {isSyncing ? 'Sincronizando' : 'Nativo Online'}
+                </span>
+                <span className="text-[7px] font-bold text-slate-500 uppercase tracking-tighter mt-1">Supabase Cloud Protocol</span>
+              </div>
             </div>
 
             <button
@@ -244,9 +271,7 @@ function MainContent() {
           {activeTab === 'clients' && <ClientsPage />}
           {activeTab === 'suppliers' && <SuppliersPage />}
           {activeTab === 'products' && <ProductsPage />}
-          {activeTab === 'inventReport' && <InventoryReportPage />}
           {activeTab === 'finance' && <FinancePage />}
-          {activeTab === 'finReport' && <FinancialReportPage />}
           {activeTab === 'cashflow' && <CashFlowPage />}
           {activeTab === 'settings' && <SettingsPage />}
         </div>

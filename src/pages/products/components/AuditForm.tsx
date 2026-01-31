@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Info, Warehouse, DollarSign, ChevronRight, Scale } from 'lucide-react';
+import { X, Info, Warehouse, DollarSign, ChevronRight, Scale, Plus, CheckCheck } from 'lucide-react';
 import { Card } from '../../../components/common/Card';
 import { maskNumber, maskValue, parseValue, formatCurrency, formatNumber } from '../../../utils/format';
 
@@ -12,6 +12,7 @@ interface AuditFormProps {
     setActiveFormZone: (zone: number) => void;
     onClose: () => void;
     onSubmit: (e: React.FormEvent) => void;
+    onSaveAndContinue: () => void;
     settings: any;
 }
 
@@ -24,9 +25,19 @@ export const AuditForm: React.FC<AuditFormProps> = ({
     setActiveFormZone,
     onClose,
     onSubmit,
+    onSaveAndContinue,
     settings
 }) => {
+    const [showSuccessNotice, setShowSuccessNotice] = useState(false);
+
     if (!isOpen) return null;
+
+    const handleQuickSave = () => {
+        if (!productForm.name) return;
+        onSaveAndContinue();
+        setShowSuccessNotice(true);
+        setTimeout(() => setShowSuccessNotice(false), 2000);
+    };
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
@@ -256,8 +267,27 @@ export const AuditForm: React.FC<AuditFormProps> = ({
                                 <div key={i} className={`w-2.5 h-2.5 rounded-full transition-all duration-500 ${activeFormZone === i ? 'bg-emerald-500 w-8' : 'bg-slate-800'}`} />
                             ))}
                         </div>
-                        <div className="flex gap-4">
-                            <button type="button" onClick={onClose} className="px-8 py-4 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 font-black text-[10px] uppercase tracking-widest hover:bg-slate-800 transition-all active:scale-95">CANCELAR PROTOCOLO</button>
+                        <div className="flex gap-4 items-center">
+                            {showSuccessNotice && (
+                                <div className="flex items-center gap-2 px-4 py-2 bg-emerald-500/20 border border-emerald-500/40 rounded-xl animate-bounce-in">
+                                    <CheckCheck size={14} className="text-emerald-400" />
+                                    <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">Registrado!</span>
+                                </div>
+                            )}
+
+                            <button type="button" onClick={onClose} className="px-8 py-4 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 font-black text-[10px] uppercase tracking-widest hover:bg-slate-800 transition-all active:scale-95">CANCELAR</button>
+
+                            {!editingProductId && (
+                                <button
+                                    type="button"
+                                    onClick={handleQuickSave}
+                                    className="px-6 py-4 rounded-xl bg-slate-950 border border-emerald-500/30 text-emerald-500 font-bold text-[10px] uppercase tracking-widest hover:bg-emerald-500/10 transition-all active:scale-95 flex items-center gap-2"
+                                >
+                                    <Plus size={14} />
+                                    SALVAR + NOVO
+                                </button>
+                            )}
+
                             <button
                                 type="button"
                                 onClick={(e) => activeFormZone < 3 ? setActiveFormZone(activeFormZone + 1) : onSubmit(e as any)}

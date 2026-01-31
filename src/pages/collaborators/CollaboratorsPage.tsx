@@ -1,7 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import {
     Briefcase, Users, UserCheck, HardHat, Ban, Search, X, Plus, Edit, Trash2, Phone, Mail, Calendar,
-    User, DollarSign, Activity, MapPin, Target, ChevronRight
+    User, DollarSign, Activity, MapPin, Target, ChevronRight, Zap, ShieldCheck, FileText, Landmark,
+    Clock, MoreVertical, CheckCircle2, AlertCircle, RefreshCw, Star, Filter
 } from 'lucide-react';
 import { useApp } from '../../contexts/AppContext';
 import { Card } from '../../components/common/Card';
@@ -13,6 +14,8 @@ export const CollaboratorsPage = () => {
     const [filter, setFilter] = useState('all');
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingId, setEditingId] = useState<number | null>(null);
+    const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
+
     const [formData, setFormData] = useState<{
         name: string;
         role: string;
@@ -23,24 +26,27 @@ export const CollaboratorsPage = () => {
         salary: string;
         hireDate: string;
     }>({
-        name: '', role: 'Operador de Máquinas', department: '', phone: '', email: '', status: 'active', salary: '', hireDate: ''
+        name: '', role: 'Operador de Máquinas', department: '', phone: '', email: '', status: 'active', salary: '', hireDate: new Date().toISOString().split('T')[0]
     });
 
     const stats = useMemo(() => {
         const total = collaborators.length;
-        const active = collaborators.filter((c: any) => c.status === 'active').length;
+        const active = collaborators.filter((c: any) => c.status === 'active' || !c.status).length;
         const vacation = collaborators.filter((c: any) => c.status === 'vacation').length;
         const inactive = collaborators.filter((c: any) => c.status === 'inactive').length;
-        return { total, active, vacation, inactive };
+        const percent = total > 0 ? (active / total) * 100 : 0;
+        return { total, active, vacation, inactive, percent };
     }, [collaborators]);
 
-    const filteredCollaborators = collaborators.filter((c: any) => {
-        const matchesSearch = c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            c.role.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            c.department.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesFilter = filter === 'all' || c.status === filter;
-        return matchesSearch && matchesFilter;
-    });
+    const filteredCollaborators = useMemo(() => {
+        return collaborators.filter((c: any) => {
+            const matchesSearch = c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                c.role.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                c.department.toLowerCase().includes(searchTerm.toLowerCase());
+            const matchesFilter = filter === 'all' || c.status === filter;
+            return matchesSearch && matchesFilter;
+        });
+    }, [collaborators, searchTerm, filter]);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -52,457 +58,348 @@ export const CollaboratorsPage = () => {
 
         if (editingId) {
             setCollaborators(collaborators.map((c: any) => c.id === editingId ? { ...c, ...newCollaborator } : c));
-            addActivity('Editou colaborador', newCollaborator.name);
+            addActivity('Atualizou dossiê de colaborador', newCollaborator.name, 'neutral');
         } else {
             setCollaborators([{ ...newCollaborator, id: Date.now() }, ...collaborators]);
-            addActivity('Adicionou colaborador', newCollaborator.name);
+            addActivity('Recrutou novo colaborador', newCollaborator.name, 'neutral');
         }
         setIsFormOpen(false);
+        resetForm();
+    };
+
+    const resetForm = () => {
         setEditingId(null);
-        setFormData({ name: '', role: 'Operador de Máquinas', department: '', phone: '', email: '', status: 'active', salary: '', hireDate: '' });
+        setFormData({ name: '', role: 'Operador de Máquinas', department: '', phone: '', email: '', status: 'active', salary: '', hireDate: new Date().toISOString().split('T')[0] });
     };
 
     const handleDelete = (id: number) => {
         const collaborator = collaborators.find((c: any) => c.id === id);
-        if (collaborator && window.confirm(`Deseja realmente excluir o colaborador ${collaborator.name}?`)) {
-            addActivity('Removeu colaborador', collaborator.name);
+        if (collaborator && window.confirm(`Deseja remover permanentemente o registro de ${collaborator.name}?`)) {
+            addActivity('Removeu colaborador do systema', collaborator.name, 'neutral');
             setCollaborators(collaborators.filter((c: any) => c.id !== id));
+            if (editingId === id) resetForm();
         }
     };
 
     const getStatusStyle = (status: string) => {
         switch (status) {
-            case 'active': return 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20';
-            case 'vacation': return 'bg-amber-500/10 text-amber-500 border-amber-500/20';
-            case 'inactive': return 'bg-rose-500/10 text-rose-500 border-rose-500/20';
+            case 'active': return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
+            case 'vacation': return 'bg-amber-500/10 text-amber-400 border-amber-500/20';
+            case 'inactive': return 'bg-rose-500/10 text-rose-400 border-rose-500/20';
             default: return 'bg-slate-800 text-slate-400 border-slate-700';
         }
     };
 
-    const getStatusLabel = (status: string) => {
-        switch (status) {
-            case 'active': return 'ATIVO';
-            case 'vacation': return 'FÉRIAS';
-            case 'inactive': return 'INATIVO';
-            default: return 'DESCONHECIDO';
-        }
-    };
-
     return (
-        <div className="flex flex-col h-full bg-slate-950 text-slate-200 overflow-hidden">
-            {/* TACTICAL HEADER - INDUSTRIAL SHARP */}
-            <div className="p-6 border-b border-slate-800 bg-slate-900/50">
-                <div className="flex justify-between items-start mb-8">
-                    <div>
-                        <h2 className="text-3xl font-black text-white tracking-tighter flex items-center gap-3 lowercase">
-                            <Briefcase className="text-emerald-500" size={32} />
-                            GESTÃO DE ATIVOS HUMANOS
-                        </h2>
-                        <p className="text-slate-500 font-mono text-xs mt-1 uppercase tracking-widest">
-                            Monitoramento de Equipe e Recursos Operacionais
-                        </p>
-                    </div>
+        <div className="animate-fade-in space-y-6 h-full flex flex-col p-2 overflow-y-auto custom-scrollbar pb-10">
+            {/* COLLABORATOR SENTINEL COMMAND CENTER */}
+            <div className="flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-6 bg-slate-900/40 p-8 rounded-[1.5rem] md:rounded-[2.5rem] border border-slate-800/60 shadow-2xl backdrop-blur-xl relative overflow-hidden group">
+                <div className="absolute top-0 left-0 w-1.5 h-full bg-indigo-500 z-20" />
+
+                <div className="relative z-10">
+                    <h2 className="text-3xl font-black text-white flex items-center gap-4 uppercase italic tracking-tighter">
+                        <Briefcase className="text-indigo-500" size={32} />
+                        Corpo Operacional & Talentos
+                    </h2>
+                    <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.4em] mt-2 ml-1 flex items-center gap-2">
+                        <Activity size={12} className="text-indigo-500/50" /> Monitoramento de Disponibilidade e Ativos Humanos
+                    </p>
+                </div>
+
+                <div className="flex gap-4 relative z-10 lg:w-auto w-full">
                     <button
-                        onClick={() => {
-                            setEditingId(null);
-                            setFormData({ name: '', role: 'Operador de Máquinas', department: '', phone: '', email: '', status: 'active', salary: '', hireDate: '' });
-                            setIsFormOpen(true);
-                        }}
-                        className="bg-emerald-500 hover:bg-emerald-400 text-emerald-950 px-6 py-3 rounded-none font-black uppercase tracking-tighter transition-all flex items-center gap-2 shadow-[4px_4px_0px_0px_rgba(16,185,129,0.2)] active:translate-x-0.5 active:translate-y-0.5"
+                        onClick={() => { resetForm(); setIsFormOpen(true); }}
+                        className="flex-1 lg:flex-none bg-indigo-600 hover:bg-indigo-500 text-white px-10 py-5 rounded-2xl font-black text-xs uppercase tracking-[0.2em] transition-all shadow-xl shadow-indigo-500/20 active:scale-95 flex items-center justify-center gap-3 border-b-4 border-indigo-800"
                     >
-                        <Plus size={20} strokeWidth={3} /> Registrar Colaborador
+                        <Plus size={20} /> Registrar Ativo
                     </button>
-                </div>
-
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-slate-800 border border-slate-800">
-                    <button onClick={() => setFilter('all')} className={`bg-slate-900 p-4 text-left transition-all ${filter === 'all' ? 'bg-slate-800' : 'hover:bg-slate-800/50'}`}>
-                        <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest mb-1">Total Equipe</p>
-                        <p className="text-2xl font-mono font-bold text-white">{stats.total}</p>
-                    </button>
-                    <button onClick={() => setFilter('active')} className={`bg-slate-900 p-4 text-left transition-all ${filter === 'active' ? 'bg-emerald-500/10' : 'hover:bg-slate-800/50'}`}>
-                        <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest mb-1">Status [ATIVO]</p>
-                        <p className="text-2xl font-mono font-bold text-emerald-500">{stats.active}</p>
-                    </button>
-                    <button onClick={() => setFilter('vacation')} className={`bg-slate-900 p-4 text-left transition-all ${filter === 'vacation' ? 'bg-amber-500/10' : 'hover:bg-slate-800/50'}`}>
-                        <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest mb-1">Status [FÉRIAS]</p>
-                        <p className="text-2xl font-mono font-bold text-amber-500">{stats.vacation}</p>
-                    </button>
-                    <button onClick={() => setFilter('inactive')} className={`bg-slate-900 p-4 text-left transition-all ${filter === 'inactive' ? 'bg-rose-500/10' : 'hover:bg-slate-800/50'}`}>
-                        <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest mb-1">Status [INATIVO]</p>
-                        <p className="text-2xl font-mono font-bold text-rose-500">{stats.inactive}</p>
+                    <button
+                        onClick={() => setIsFilterPanelOpen(!isFilterPanelOpen)}
+                        className={`p-5 rounded-2xl border transition-all ${isFilterPanelOpen ? 'bg-indigo-500/10 border-indigo-500 text-indigo-400' : 'bg-slate-900 border-slate-800 text-slate-500 hover:text-white group-hover:border-slate-700'}`}
+                    >
+                        <Filter size={20} />
                     </button>
                 </div>
             </div>
 
-            {/* ACTION BAR */}
-            <div className="px-6 py-4 bg-slate-900/30 border-b border-slate-800/80 flex flex-col md:flex-row gap-4 items-center">
-                <div className="relative flex-1 group">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-emerald-500 transition-colors" size={18} />
-                    <input
-                        type="text"
-                        placeholder="BUSCAR COLABORADOR POR NOME, CARGO OU DEP..."
-                        value={searchTerm}
-                        onChange={e => setSearchTerm(e.target.value)}
-                        className="w-full bg-slate-950 border border-slate-800 rounded-none pl-10 pr-4 py-2.5 text-xs text-white outline-none focus:border-emerald-500/50 font-bold tracking-widest transition-all"
-                    />
-                </div>
+            {/* TELEMETRY MATRIX */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {[
+                    { label: 'Efetivo Total', value: stats.total, icon: Users, color: 'indigo', code: 'TEAM_TTL' },
+                    { label: 'Prontidão Operacional', value: stats.active, icon: UserCheck, color: 'emerald', code: 'TEAM_RDY' },
+                    { label: 'Ciclo de Descanso', value: stats.vacation, icon: Star, color: 'amber', code: 'TEAM_VAC' },
+                    { label: 'Ativos Suspensos', value: stats.inactive, icon: Ban, color: 'rose', code: 'TEAM_OFF' }
+                ].map((item, idx) => (
+                    <Card key={idx} className="group p-6 border-slate-900 hover:border-slate-800 bg-slate-950 relative overflow-hidden rounded-[2rem]">
+                        <div className={`absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity text-${item.color}-500`}>
+                            <item.icon size={48} />
+                        </div>
+                        <p className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] mb-1 italic group-hover:text-slate-400 transition-colors">{item.label}</p>
+                        <h4 className="text-3xl font-black text-white italic tracking-tighter group-hover:translate-x-1 transition-transform">
+                            {item.value.toString().padStart(2, '0')}
+                        </h4>
+                        <div className="mt-4 flex items-center justify-between">
+                            <span className="text-[8px] font-black text-slate-700 tracking-widest uppercase italic">{item.code}</span>
+                            <div className={`h-1 flex-1 mx-4 bg-slate-800 rounded-full overflow-hidden`}>
+                                <div className={`h-full bg-${item.color}-500 shadow-[0_0_8px] shadow-${item.color}-500`} style={{ width: stats.total > 0 ? `${Math.max((item.value / stats.total) * 100, 4)}%` : '2%' }} />
+                            </div>
+                        </div>
+                    </Card>
+                ))}
             </div>
 
-            {/* COLLABORATOR CARDS GRID */}
-            <div className="flex-1 overflow-y-auto p-6 scrollbar-thin scrollbar-thumb-slate-800 scrollbar-track-transparent">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {filteredCollaborators.map((c: any) => (
-                        <div
-                            key={c.id}
-                            className={`group bg-slate-900 border transition-all relative flex flex-col ${c.status === 'inactive'
-                                ? 'border-slate-800/50 opacity-60'
-                                : 'border-slate-800 hover:border-emerald-500/40'
-                                }`}
-                        >
-                            {/* CARD BODY */}
-                            <div className="p-5 flex flex-col gap-5">
-                                <div className="flex justify-between items-start gap-3">
-                                    <div className="flex items-center gap-4">
-                                        <div className="w-12 h-12 bg-slate-950 border border-slate-800 flex items-center justify-center font-black text-lg text-slate-500 group-hover:bg-emerald-500/10 group-hover:text-emerald-500 group-hover:border-emerald-500/30 transition-all">
-                                            {c.name.substring(0, 2).toUpperCase()}
+            {/* SCANNER PANEL */}
+            {isFilterPanelOpen && (
+                <div className="bg-slate-950/80 border border-slate-900 p-8 rounded-[2.5rem] mb-6 animate-in slide-in-from-top-4 duration-500 backdrop-blur-xl shadow-2xl relative overflow-hidden">
+                    <div className="absolute top-0 left-0 w-1.5 h-full bg-indigo-500/50 z-20" />
+
+                    <div className="space-y-4">
+                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2 ml-1">
+                            <Search size={12} className="text-indigo-500" /> Scanner de Varredura Operacional (NOME/CARGO/SETOR)
+                        </label>
+
+                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
+                            <div className="lg:col-span-8">
+                                <div className="relative group h-full">
+                                    <input
+                                        type="text"
+                                        placeholder="FILTRAR CORPO TÉCNICO..."
+                                        className="w-full h-full bg-slate-900/50 border border-slate-800 py-4 px-6 rounded-2xl text-xs font-black uppercase tracking-widest text-white outline-none focus:border-indigo-500/50 transition-all italic placeholder:text-slate-800"
+                                        value={searchTerm}
+                                        onChange={e => setSearchTerm(e.target.value)}
+                                    />
+                                    <div className="absolute right-6 top-1/2 -translate-y-1/2 opacity-20 group-focus-within:opacity-100 transition-opacity pointer-events-none">
+                                        <Zap size={16} className="text-indigo-500" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="lg:col-span-4 flex gap-3 overflow-x-auto custom-scrollbar pb-2 lg:pb-0">
+                                {['all', 'active', 'vacation', 'inactive'].map(s => (
+                                    <button
+                                        key={s}
+                                        onClick={() => setFilter(s)}
+                                        className={`flex-1 px-4 py-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border whitespace-nowrap flex items-center justify-center ${filter === s ? 'bg-indigo-600 text-white border-indigo-400 shadow-lg' : 'bg-slate-900 border-slate-800 text-slate-500 hover:text-slate-200'}`}
+                                    >
+                                        {s === 'all' ? 'Ver Todos' : s === 'active' ? 'Ativos' : s === 'vacation' ? 'Férias' : 'Suspensos'}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* COLLABORATOR GRID */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-6 md:gap-8">
+                {filteredCollaborators.map((c: any) => (
+                    <Card key={c.id} variant="glass" className="group p-0 border-slate-800/60 hover:border-indigo-500/40 transition-all duration-500 overflow-hidden rounded-[1.5rem] md:rounded-[2.5rem] flex flex-col relative">
+                        <div className="absolute top-0 right-0 p-6 z-10 flex gap-2">
+                            <button onClick={() => handleDelete(c.id)} className="text-slate-700 hover:text-rose-500 transition-colors opacity-0 group-hover:opacity-100"><Trash2 size={16} /></button>
+                        </div>
+
+                        {/* Status Bar */}
+                        <div className={`h-1.5 w-full ${c.status === 'inactive' ? 'bg-rose-500 animate-pulse' : c.status === 'vacation' ? 'bg-amber-500' : 'bg-emerald-500'}`} />
+
+                        <div className="p-8">
+                            <div className="flex items-start justify-between mb-8">
+                                <div className="flex items-center gap-5">
+                                    <div className="w-16 h-16 rounded-[1.25rem] bg-slate-950 border border-slate-800 flex items-center justify-center text-slate-500 group-hover:bg-indigo-500/10 group-hover:text-indigo-400 group-hover:border-indigo-500/20 transition-all duration-500 shadow-xl font-black italic">
+                                        {c.name.substring(0, 2).toUpperCase()}
+                                    </div>
+                                    <div className="min-w-0">
+                                        <h4 className="font-black text-white text-lg uppercase tracking-tighter italic leading-none truncate group-hover:text-indigo-300 transition-colors">{c.name}</h4>
+                                        <div className="flex items-center gap-2 mt-2">
+                                            <span className="px-2.5 py-1 bg-slate-900 rounded-lg text-[9px] text-slate-500 font-black uppercase tracking-[0.1em] border border-slate-800 flex items-center gap-1.5">
+                                                <HardHat size={10} className="shrink-0" />
+                                                <span className="hidden lg:inline">{c.role}</span>
+                                            </span>
+                                            <span className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-[0.1em] border ${getStatusStyle(c.status)}`}>
+                                                {c.status === 'active' ? 'Operativo' : c.status === 'vacation' ? 'Férias' : 'Suspenso'}
+                                            </span>
                                         </div>
-                                        <div>
-                                            <h4 className="font-black text-sm text-white uppercase tracking-tight leading-tight group-hover:text-emerald-500 transition-colors">{c.name}</h4>
-                                            <div className="flex items-center gap-2 mt-0.5">
-                                                <div className="w-1.5 h-1.5 bg-slate-700 group-hover:bg-emerald-500" />
-                                                <span className="text-[9px] text-slate-500 group-hover:text-slate-400 font-black uppercase tracking-widest transition-all">
-                                                    {c.role}
-                                                </span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="space-y-6">
+                                {/* Details Cluster */}
+                                <div className="grid grid-cols-2 gap-px bg-slate-800/40 border border-slate-800/40 rounded-2xl overflow-hidden">
+                                    <div className="bg-slate-950/60 p-4 flex flex-col gap-1">
+                                        <p className="text-[8px] text-slate-600 font-black uppercase tracking-widest flex items-center gap-1.5"><MapPin size={10} /> Setor</p>
+                                        <p className="text-[10px] font-black text-slate-300 uppercase truncate italic">{c.department || 'GLOBAL'}</p>
+                                    </div>
+                                    <div className="bg-slate-950/60 p-4 flex flex-col gap-1">
+                                        <p className="text-[8px] text-slate-600 font-black uppercase tracking-widest flex items-center gap-1.5"><Clock size={10} /> Desde</p>
+                                        <p className="text-[10px] font-black text-slate-300 italic">{(c.hireDate || '').split('-').reverse().join('/')}</p>
+                                    </div>
+                                </div>
+
+                                <div className="bg-slate-950/50 p-5 rounded-[1.5rem] border border-slate-900 flex justify-between items-center group-hover:border-indigo-500/20 transition-all">
+                                    <div className="space-y-1">
+                                        <p className="text-[8px] text-slate-600 font-black uppercase tracking-widest flex items-center gap-1.5"><DollarSign size={10} /> Custo Mensal</p>
+                                        <p className="text-xl font-black text-white italic tracking-tighter">R$ {c.salary ? formatNumber(c.salary) : '0,00'}</p>
+                                    </div>
+                                    <div className="p-3 bg-slate-900 border border-slate-800 rounded-xl group-hover:border-indigo-500/40 transition-all">
+                                        <ShieldCheck className="text-indigo-500/50 group-hover:text-indigo-400" size={18} />
+                                    </div>
+                                </div>
+
+                                <div className="space-y-3 px-2">
+                                    <div className="flex items-center gap-4 text-[11px] text-slate-500 group-hover:text-slate-300 transition-colors">
+                                        <Phone size={14} className="text-indigo-500/30" />
+                                        <span className="font-bold truncate">{c.phone || '(00) 00000-0000'}</span>
+                                    </div>
+                                    <div className="flex items-center gap-4 text-[11px] text-slate-500 group-hover:text-slate-300 transition-colors">
+                                        <Mail size={14} className="text-indigo-500/30" />
+                                        <span className="font-bold truncate uppercase">{c.email || 'N/A'}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Tactical Footer Action Bar */}
+                        <div className="mt-auto bg-slate-900/40 p-6 border-t border-slate-800/60 flex justify-between items-center group-hover:bg-slate-900/60 transition-colors">
+                            <div className="flex items-center gap-2">
+                                <Activity size={14} className="text-indigo-500 animate-pulse" />
+                                <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest">Ativo Rastreado</span>
+                            </div>
+
+                            <button
+                                onClick={() => { setEditingId(c.id); setFormData({ ...c, salary: maskValue(c.salary.toString()) } as any); setIsFormOpen(true); }}
+                                className="px-6 py-3 bg-slate-950 border border-slate-800 hover:border-indigo-500/50 rounded-xl text-[10px] font-black text-slate-500 hover:text-white uppercase tracking-widest transition-all active:scale-95 flex items-center gap-3"
+                            >
+                                <Edit size={14} /> DETALHES TÉCNICOS
+                            </button>
+                        </div>
+                    </Card>
+                ))}
+            </div>
+
+            {/* PROTOCOL MODAL: COLABORADOR */}
+            {isFormOpen && (
+                <div className="fixed inset-0 z-[120] flex items-center justify-center p-2 md:p-4">
+                    <div className="absolute inset-0 bg-slate-950/95 backdrop-blur-2xl" onClick={() => setIsFormOpen(false)} />
+
+                    <Card variant="glass" className="w-full max-w-5xl relative z-10 p-0 overflow-hidden border-indigo-500/20 shadow-2xl rounded-[1.5rem] md:rounded-[3rem] !scale-100 flex flex-col h-[95vh] md:h-[90vh]">
+                        {/* Integrity progress bar */}
+                        <div className="h-1.5 w-full bg-slate-900">
+                            <div className="h-full bg-indigo-500 shadow-[0_0_15px_#6366f1]" style={{ width: `${(Object.values(formData).filter(v => v !== '').length / 8) * 100}%` }} />
+                        </div>
+
+                        <div className="p-10 border-b border-slate-800 bg-slate-950/40 flex justify-between items-center shrink-0">
+                            <div className="flex items-center gap-5">
+                                <div className="w-14 h-14 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
+                                    <UserCheck size={28} />
+                                </div>
+                                <div>
+                                    <h3 className="text-3xl font-black text-white uppercase italic tracking-tighter">{editingId ? 'Atualização de Prontuário' : 'Registro de Recrutamento'}</h3>
+                                    <p className="text-slate-500 text-[10px] font-black uppercase tracking-[0.4em] mt-1 italic flex items-center gap-2">
+                                        <Zap size={12} className="text-indigo-500" /> Sistema de Gestão de Ativos Humanos
+                                    </p>
+                                </div>
+                            </div>
+                            <button onClick={() => setIsFormOpen(false)} className="w-14 h-14 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-500 hover:text-white transition-all shadow-lg active:scale-90"><X size={28} /></button>
+                        </div>
+
+                        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-10 custom-scrollbar space-y-10 group/form">
+                            <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+                                <div className="lg:col-span-8 space-y-8">
+                                    <div className="space-y-6">
+                                        <h4 className="text-[10px] font-black text-indigo-500 uppercase tracking-widest flex items-center gap-3 italic"><FileText size={14} /> Identificação Personalíssima</h4>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                            <div className="md:col-span-2 space-y-1.5">
+                                                <label className="text-[10px] text-slate-500 font-black uppercase tracking-widest ml-1">Nome Completo do Ativo</label>
+                                                <input required value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value.toUpperCase() })} placeholder="EX: RENATO AUGUSTO SILVA" className="w-full bg-slate-900 border border-slate-800 rounded-2xl px-6 py-4 text-sm font-bold text-white outline-none focus:border-indigo-500/50 transition-all italic" />
+                                            </div>
+                                            <div className="space-y-1.5">
+                                                <label className="text-[10px] text-slate-500 font-black uppercase tracking-widest ml-1">Cargo / Função</label>
+                                                <select value={formData.role} onChange={e => setFormData({ ...formData, role: e.target.value })} className="w-full bg-slate-900 border border-slate-800 rounded-2xl px-6 py-4 text-sm font-black text-white outline-none focus:border-indigo-500/50 italic appearance-none cursor-pointer">
+                                                    <option>Operador de Máquinas</option><option>Agrônomo</option><option>Gerente de Produção</option>
+                                                    <option>Técnico Agrícola</option><option>Veterinário</option><option>Capataz</option><option>Administrativo</option>
+                                                    <option>Outros</option>
+                                                </select>
+                                            </div>
+                                            <div className="space-y-1.5">
+                                                <label className="text-[10px] text-slate-500 font-black uppercase tracking-widest ml-1">Setor / Departamento</label>
+                                                <input value={formData.department} onChange={e => setFormData({ ...formData, department: e.target.value.toUpperCase() })} placeholder="EX: CAMPO 04 / LOGÍSTICA" className="w-full bg-slate-900 border border-slate-800 rounded-2xl px-6 py-4 text-sm font-bold text-white outline-none focus:border-indigo-500/50 transition-all italic" />
                                             </div>
                                         </div>
                                     </div>
-                                    <div className={`px-2 py-0.5 text-[8px] font-black uppercase tracking-widest border ${getStatusStyle(c.status)}`}>
-                                        {getStatusLabel(c.status)}
-                                    </div>
-                                </div>
 
-                                <div className="grid grid-cols-2 gap-px bg-slate-800/50 border border-slate-800/50">
-                                    <div className="bg-slate-950/30 p-2.5">
-                                        <p className="text-[8px] text-slate-500 font-black uppercase tracking-widest mb-1 flex items-center gap-1.5">
-                                            <Phone size={10} className="text-emerald-500" /> Contato
-                                        </p>
-                                        <p className="text-[10px] font-mono font-bold text-slate-300 truncate">{c.phone || 'NÃO INF.'}</p>
-                                    </div>
-                                    <div className="bg-slate-950/30 p-2.5">
-                                        <p className="text-[8px] text-slate-500 font-black uppercase tracking-widest mb-1 flex items-center gap-1.5">
-                                            <Mail size={10} className="text-emerald-500" /> E-mail
-                                        </p>
-                                        <p className="text-[10px] font-bold text-slate-300 truncate uppercase">{c.email || 'NÃO INF.'}</p>
-                                    </div>
-                                    <div className="bg-slate-950/30 p-2.5">
-                                        <p className="text-[8px] text-slate-500 font-black uppercase tracking-widest mb-1 flex items-center gap-1.5">
-                                            <Briefcase size={10} className="text-emerald-500" /> Depto.
-                                        </p>
-                                        <p className="text-[10px] font-bold text-slate-300 uppercase truncate">{c.department || 'NÃO INF.'}</p>
-                                    </div>
-                                    <div className="bg-slate-950/30 p-2.5">
-                                        <p className="text-[8px] text-slate-500 font-black uppercase tracking-widest mb-1 flex items-center gap-1.5">
-                                            <Calendar size={10} className="text-emerald-500" /> Admissão
-                                        </p>
-                                        <p className="text-[10px] font-mono font-bold text-slate-300">{c.hireDate ? c.hireDate.split('-').reverse().join('/') : 'NÃO INF.'}</p>
-                                    </div>
-                                </div>
-
-                                <div className="bg-slate-950 border border-slate-800 p-3 flex justify-between items-center group-hover:border-emerald-500/20 transition-all">
-                                    <div className="flex items-center gap-2">
-                                        <DollarSign size={14} className="text-emerald-500" />
-                                        <p className="text-xl font-mono font-black text-white tracking-tighter">
-                                            {formatNumber(c.salary)}
-                                        </p>
-                                    </div>
-                                    <p className="text-[8px] text-slate-600 font-mono uppercase">REC_SYS_V2</p>
-                                </div>
-                            </div>
-
-                            {/* CARD FOOTER ACTIONS */}
-                            <div className="bg-slate-950/50 border-t border-slate-800 p-3 flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <button
-                                    onClick={() => {
-                                        setEditingId(c.id);
-                                        setFormData({ ...c, salary: maskValue(c.salary) });
-                                        setIsFormOpen(true);
-                                    }}
-                                    className="p-1.5 bg-slate-800 hover:bg-emerald-500/20 text-slate-400 hover:text-emerald-500 transition-all border border-slate-700"
-                                >
-                                    <Edit size={14} />
-                                </button>
-                                <button
-                                    onClick={() => handleDelete(c.id)}
-                                    className="p-1.5 bg-slate-800 hover:bg-rose-500/20 text-slate-400 hover:text-rose-500 transition-all border border-slate-700"
-                                >
-                                    <Trash2 size={14} />
-                                </button>
-                            </div>
-                        </div>
-                    ))}
-
-                    {filteredCollaborators.length === 0 && (
-                        <div className="col-span-full py-20 border border-dashed border-slate-800 flex flex-col items-center justify-center text-slate-600">
-                            <Activity size={32} className="mb-4 opacity-20" />
-                            <p className="font-mono text-[10px] uppercase tracking-widest">Nenhum ativo humano encontrado no log</p>
-                        </div>
-                    )}
-                </div>
-            </div>
-
-            {/* MODAL - TACTICAL FORM (CONSOLE MILITAR) */}
-            {isFormOpen && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-slate-950/95 backdrop-blur-sm" onClick={() => setIsFormOpen(false)} />
-                    <div className="bg-slate-900 border border-slate-800 w-full max-w-2xl relative z-10 shadow-[0_0_50px_rgba(0,0,0,0.8)] overflow-hidden">
-                        {/* SCAN-LINE ANIMATION EFFECT */}
-                        <div className="absolute inset-0 pointer-events-none opacity-[0.03] bg-[linear-gradient(rgba(16,185,129,0)_50%,rgba(16,185,129,1)_50%)] bg-[length:100%_4px] animate-pulse" />
-
-                        <div className="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-950/30">
-                            <div className="flex-1">
-                                <h3 className="text-xl font-black text-white uppercase tracking-tighter">
-                                    {editingId ? 'EDICÃO DE REGISTRO' : 'REKRUTAMENTO & REGISTRO'}
-                                </h3>
-                                <div className="flex items-center gap-2 mt-2">
-                                    <div className="flex-1 h-1.5 bg-slate-800 border border-slate-700 relative">
-                                        {/* OPTION C: INTEGRITY BAR */}
-                                        <div
-                                            className="absolute left-0 top-0 h-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)] transition-all duration-500"
-                                            style={{
-                                                width: `${(Object.values(formData).filter(v => v !== '' && v !== '0,00').length / 8) * 100}%`
-                                            }}
-                                        />
-                                    </div>
-                                    <span className="text-[8px] font-mono text-emerald-500 font-black">
-                                        ID_READY: {Math.round((Object.values(formData).filter(v => v !== '' && v !== '0,00').length / 8) * 100)}%
-                                    </span>
-                                </div>
-                            </div>
-                            <button onClick={() => setIsFormOpen(false)} className="text-slate-500 hover:text-white p-2 ml-4 self-start">
-                                <X size={20} />
-                            </button>
-                        </div>
-
-                        <form onSubmit={handleSubmit} className="p-8 space-y-8 max-h-[75vh] overflow-y-auto scrollbar-thin scrollbar-thumb-emerald-500/20 scrollbar-track-transparent">
-                            {/* OPTION A: ZONA 01 - IDENTIFICAÇÃO */}
-                            <div className="space-y-4">
-                                <div className="flex items-center gap-2 mb-2 pb-1 border-b border-slate-800/50">
-                                    <div className="w-2 h-2 bg-emerald-500" />
-                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">[01] PARAMETROS DE IDENTIFICAÇÃO</span>
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-[10px] text-slate-500 font-black uppercase tracking-widest ml-1">Nome Completo do Ativo</label>
-                                    <div className="relative group">
-                                        <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-700 group-focus-within:text-emerald-500 transition-colors" size={16} />
-                                        <input
-                                            required
-                                            autoFocus
-                                            value={formData.name}
-                                            onChange={e => setFormData({ ...formData, name: e.target.value })}
-                                            className="w-full bg-slate-950 border border-slate-800 rounded-none pl-10 pr-4 py-3 text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 font-bold placeholder:text-slate-900 transition-all uppercase text-sm"
-                                            placeholder="EX: JOÃO DA SILVA"
-                                        />
-                                    </div>
-                                </div>
-
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] text-slate-500 font-black uppercase tracking-widest ml-1">Cargo / Função Técnica</label>
-                                        <div className="relative group">
-                                            <Target className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-700 group-focus-within:text-emerald-500 transition-colors z-10" size={16} />
-                                            <select
-                                                value={formData.role}
-                                                onChange={e => setFormData({ ...formData, role: e.target.value })}
-                                                className="w-full bg-slate-950 border border-slate-800 rounded-none pl-10 pr-4 py-3 text-white outline-none focus:border-emerald-500 font-bold appearance-none uppercase transition-all text-sm relative"
-                                            >
-                                                <optgroup label="GESTÃO E ESTRATÉGIA" className="bg-slate-900 text-slate-500 font-black">
-                                                    <option>Gerente Geral</option>
-                                                    <option>Gerente de Produção</option>
-                                                    <option>Gerente Financeiro</option>
-                                                    <option>Gerente de Pecuária</option>
-                                                    <option>Gerente de Agricultura</option>
-                                                    <option>Administrador Agrícola</option>
-                                                    <option>Diretor Operacional</option>
-                                                </optgroup>
-                                                <optgroup label="CORPO TÉCNICO" className="bg-slate-900 text-slate-500 font-black">
-                                                    <option>Agrônomo</option>
-                                                    <option>Médico Veterinário</option>
-                                                    <option>Zootecnista</option>
-                                                    <option>Técnico Agrícola</option>
-                                                    <option>Técnico em Agropecuária</option>
-                                                    <option>Técnico em Irrigação</option>
-                                                    <option>Técnico de Segurança do Trabalho</option>
-                                                    <option>Consultor Técnico</option>
-                                                </optgroup>
-                                                <optgroup label="OPERAÇÃO DE CAMPO (AGRICULTURA)" className="bg-slate-900 text-slate-500 font-black">
-                                                    <option>Operador de Máquinas</option>
-                                                    <option>Tratorista</option>
-                                                    <option>Operador de Colheitadeira</option>
-                                                    <option>Safrista</option>
-                                                    <option>Auxiliar de Campo</option>
-                                                    <option>Irrigador</option>
-                                                    <option>Aplicador de Defensivos</option>
-                                                    <option>Canteirista</option>
-                                                </optgroup>
-                                                <optgroup label="OPERAÇÃO DE CAMPO (PECUÁRIA)" className="bg-slate-900 text-slate-500 font-black">
-                                                    <option>Capataz</option>
-                                                    <option>Campeiro</option>
-                                                    <option>Peão de Pecuária</option>
-                                                    <option>Inseminador</option>
-                                                    <option>Retireiro</option>
-                                                    <option>Tratador de Animais</option>
-                                                    <option>Serviços Gerais (Pecuária)</option>
-                                                </optgroup>
-                                                <optgroup label="LOGÍSTICA E MANUTENÇÃO" className="bg-slate-900 text-slate-500 font-black">
-                                                    <option>Almoxarife</option>
-                                                    <option>Mecânico Agrícola</option>
-                                                    <option>Mecânico Industrial</option>
-                                                    <option>Eletricista</option>
-                                                    <option>Motorista (Caminhão)</option>
-                                                    <option>Motorista (Puxada)</option>
-                                                    <option>Operador de Silo</option>
-                                                    <option>Classificador de Grãos</option>
-                                                    <option>Lubrificador</option>
-                                                </optgroup>
-                                                <optgroup label="APOIO E ADMINISTRATIVO" className="bg-slate-900 text-slate-500 font-black">
-                                                    <option>Auxiliar Administrativo</option>
-                                                    <option>Faturista</option>
-                                                    <option>Contador Agrícola</option>
-                                                    <option>Cozinheiro(a)</option>
-                                                    <option>Auxiliar de Cozinha</option>
-                                                    <option>Zelador</option>
-                                                    <option>Vigia</option>
-                                                    <option>Serviços Gerais</option>
-                                                </optgroup>
-                                            </select>
-                                        </div>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] text-slate-500 font-black uppercase tracking-widest ml-1">Departamento / Setor</label>
-                                        <div className="relative group">
-                                            <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-700 group-focus-within:text-emerald-500 transition-colors" size={16} />
-                                            <input
-                                                value={formData.department}
-                                                onChange={e => setFormData({ ...formData, department: e.target.value })}
-                                                className="w-full bg-slate-950 border border-slate-800 rounded-none pl-10 pr-4 py-3 text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 font-bold transition-all uppercase text-sm placeholder:text-slate-900"
-                                                placeholder="EX: PRODUÇÃO"
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* ZONA 02 - COMUNICAÇÃO & LOGÍSTICA */}
-                            <div className="space-y-4">
-                                <div className="flex items-center gap-2 mb-2 pb-1 border-b border-slate-800/50">
-                                    <div className="w-2 h-2 bg-emerald-500" />
-                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">[02] CANAIS DE DESPACHO E CONTATO</span>
-                                </div>
-                                <div className="grid grid-cols-2 gap-6">
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] text-slate-500 font-black uppercase tracking-widest ml-1">Telefone Operacional</label>
-                                        <div className="relative group">
-                                            <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-700 group-focus-within:text-emerald-500 transition-colors" size={16} />
-                                            <input
-                                                value={formData.phone}
-                                                onChange={e => setFormData({ ...formData, phone: e.target.value })}
-                                                className="w-full bg-slate-950 border border-slate-800 rounded-none pl-10 pr-4 py-3 text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 font-mono font-bold transition-all text-sm placeholder:text-slate-900"
-                                                placeholder="(00) 00000-0000"
-                                            />
-                                        </div>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] text-slate-500 font-black uppercase tracking-widest ml-1">E-mail de Cadastro</label>
-                                        <div className="relative group">
-                                            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-700 group-focus-within:text-emerald-500 transition-colors" size={16} />
-                                            <input
-                                                type="email"
-                                                value={formData.email}
-                                                onChange={e => setFormData({ ...formData, email: e.target.value })}
-                                                className="w-full bg-slate-950 border border-slate-800 rounded-none pl-10 pr-4 py-3 text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 font-bold transition-all text-sm placeholder:text-slate-900"
-                                                placeholder="USUARIO@DOMINIO.COM"
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* ZONA 03 - FINANCEIRO & CONTRATUAL */}
-                            <div className="space-y-4">
-                                <div className="flex items-center gap-2 mb-2 pb-1 border-b border-slate-800/50">
-                                    <div className="w-2 h-2 bg-emerald-500" />
-                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">[03] PARAMETROS CUSTO E ADMISSÃO</span>
-                                </div>
-                                <div className="grid grid-cols-2 gap-6">
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] text-slate-500 font-black uppercase tracking-widest ml-1">Custo Mensal (R$)</label>
-                                        <div className="relative group">
-                                            <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-700 group-focus-within:text-emerald-500 transition-colors" size={16} />
-                                            <input
-                                                value={formData.salary}
-                                                onChange={e => setFormData({ ...formData, salary: maskValue(e.target.value) })}
-                                                className="w-full bg-slate-950 border border-slate-800 rounded-none pl-10 pr-4 py-3 text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 font-mono font-black transition-all text-sm placeholder:text-slate-900"
-                                                placeholder="0,00"
-                                            />
-                                        </div>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] text-slate-500 font-black uppercase tracking-widest ml-1">Data de Ingresso</label>
-                                        <div className="relative group">
-                                            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-700 group-focus-within:text-emerald-500 transition-colors z-10" size={16} />
-                                            <input
-                                                type="date"
-                                                value={formData.hireDate}
-                                                onChange={e => setFormData({ ...formData, hireDate: e.target.value })}
-                                                className="w-full bg-slate-950 border border-slate-800 rounded-none pl-10 pr-4 py-3 text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 font-mono font-bold transition-all text-sm [color-scheme:dark]"
-                                            />
+                                    <div className="space-y-6 border-t border-slate-800 pt-8">
+                                        <h4 className="text-[10px] font-black text-indigo-500 uppercase tracking-widest flex items-center gap-3 italic"><Landmark size={14} /> Canais de Comunicação</h4>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                            <div className="space-y-1.5">
+                                                <label className="text-[10px] text-slate-500 font-black uppercase tracking-widest ml-1">Telefone Operacional</label>
+                                                <input value={formData.phone} onChange={e => setFormData({ ...formData, phone: e.target.value })} placeholder="(00) 00000-0000" className="w-full bg-slate-900 border border-slate-800 rounded-2xl px-6 py-4 text-sm font-bold text-white outline-none focus:border-indigo-500/50 transition-all" />
+                                            </div>
+                                            <div className="space-y-1.5">
+                                                <label className="text-[10px] text-slate-500 font-black uppercase tracking-widest ml-1">E-mail Corporativo</label>
+                                                <input type="email" value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value.toLowerCase() })} placeholder="COLABORADOR@AGROGEST.COM" className="w-full bg-slate-900 border border-slate-800 rounded-2xl px-6 py-4 text-sm font-bold text-white outline-none focus:border-indigo-500/50 transition-all" />
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
 
-                                <div className="space-y-2">
-                                    <label className="text-[10px] text-slate-500 font-black uppercase tracking-widest ml-1">Status Operacional do Ativo</label>
-                                    <div className="flex gap-1">
-                                        {[
-                                            { id: 'active', label: 'ATIVO', color: 'peer-checked:bg-emerald-500 peer-checked:text-emerald-950 border-emerald-500/20 text-emerald-500' },
-                                            { id: 'vacation', label: 'FÉRIAS', color: 'peer-checked:bg-amber-500 peer-checked:text-amber-950 border-amber-500/20 text-amber-500' },
-                                            { id: 'inactive', label: 'INATIVO', color: 'peer-checked:bg-rose-500 peer-checked:text-rose-950 border-rose-500/20 text-rose-500' }
-                                        ].map((s) => (
-                                            <label key={s.id} className="flex-1 cursor-pointer">
-                                                <input
-                                                    type="radio"
-                                                    name="status"
-                                                    value={s.id}
-                                                    checked={formData.status === s.id}
-                                                    onChange={() => setFormData({ ...formData, status: s.id as any })}
-                                                    className="sr-only peer"
-                                                />
-                                                <div className={`py-3 text-[10px] font-black text-center border transition-all ${s.color} bg-slate-950 hover:bg-slate-900 shadow-[2px_2px_0px_0px_rgba(0,0,0,0.5)]`}>
-                                                    {s.label}
+                                <div className="lg:col-span-4 space-y-8">
+                                    <div className="bg-slate-900/40 border border-slate-800 p-8 rounded-[2rem] space-y-6">
+                                        <h4 className="text-[10px] font-black text-indigo-500 uppercase tracking-widest flex items-center gap-3 italic"><DollarSign size={14} /> Estrutura de Custos</h4>
+                                        <div className="space-y-5">
+                                            <div className="space-y-1.5">
+                                                <label className="text-[10px] text-slate-500 font-black uppercase tracking-widest ml-1">Vencimento Mensal</label>
+                                                <div className="relative">
+                                                    <input required value={formData.salary} onChange={e => setFormData({ ...formData, salary: maskValue(e.target.value) })} placeholder="0,00" className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-6 py-4 text-xl font-black text-white outline-none focus:border-indigo-500/50 italic text-right" />
+                                                    <span className="absolute left-6 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-700 italic">R$</span>
                                                 </div>
-                                            </label>
-                                        ))}
+                                            </div>
+                                            <div className="space-y-1.5">
+                                                <label className="text-[10px] text-slate-500 font-black uppercase tracking-widest ml-1">Data de Admissão</label>
+                                                <input type="date" value={formData.hireDate} onChange={e => setFormData({ ...formData, hireDate: e.target.value })} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-xs font-black text-white outline-none focus:border-indigo-500/50 [color-scheme:dark]" />
+                                            </div>
+                                            <div className="space-y-1.5 pt-4">
+                                                <label className="text-[10px] text-slate-500 font-black uppercase tracking-widest ml-1 mb-2 block italic">Estado do Ativo</label>
+                                                <div className="grid grid-cols-3 gap-2">
+                                                    {['active', 'vacation', 'inactive'].map(s => (
+                                                        <button
+                                                            key={s}
+                                                            type="button"
+                                                            onClick={() => setFormData({ ...formData, status: s as any })}
+                                                            className={`py-2 rounded-lg text-[9px] font-black uppercase tracking-widest border transition-all ${formData.status === s ? getStatusStyle(s) + ' border-current' : 'bg-slate-950 border-slate-800 text-slate-600'}`}
+                                                        >
+                                                            {s === 'active' ? 'Ativo' : s === 'vacation' ? 'Férias' : 'Off'}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-slate-900/20 border border-slate-800/50 p-6 rounded-[1.5rem] flex items-center gap-4 text-slate-600">
+                                        <ShieldCheck size={20} className="shrink-0" />
+                                        <p className="text-[9px] font-bold uppercase tracking-widest italic leading-tight">Os dados estão em conformidade com a LGPD e políticas internas da fazenda.</p>
                                     </div>
                                 </div>
-                            </div>
-
-                            <div className="flex justify-end gap-1 pt-6 border-t border-slate-800/50">
-                                <button
-                                    type="button"
-                                    onClick={() => setIsFormOpen(false)}
-                                    className="px-8 py-3 bg-slate-950 border border-slate-800 text-slate-400 font-black uppercase tracking-widest hover:text-white transition-all active:scale-95"
-                                >
-                                    Descartar
-                                </button>
-                                <button
-                                    type="submit"
-                                    className="px-12 py-3 bg-emerald-500 text-emerald-950 font-black uppercase tracking-tighter hover:bg-emerald-400 transition-all shadow-[4px_4px_0px_0px_rgba(16,185,129,0.2)] active:translate-x-0.5 active:translate-y-0.5"
-                                >
-                                    Gravar Registro
-                                </button>
                             </div>
                         </form>
-                    </div>
+
+                        <div className="p-10 border-t border-slate-800 bg-slate-950 flex justify-between items-center shrink-0">
+                            <div className="flex items-center gap-4 text-slate-500 opacity-40 italic">
+                                <Users size={20} />
+                                <span className="text-[9px] font-black uppercase tracking-[0.3em]">Compliance Equipe v2.5</span>
+                            </div>
+                            <div className="flex gap-4">
+                                <button type="button" onClick={() => setIsFormOpen(false)} className="px-10 py-5 rounded-2xl bg-slate-900 border border-slate-800 text-slate-500 font-black text-[10px] uppercase tracking-widest hover:bg-slate-800 hover:text-white transition-all active:scale-95 italic">Abortar</button>
+                                <button
+                                    type="submit"
+                                    onClick={handleSubmit}
+                                    className="px-16 py-5 rounded-2xl bg-indigo-600 text-white font-black text-[11px] uppercase tracking-[0.4em] hover:bg-indigo-500 transition-all shadow-2xl shadow-indigo-500/30 active:scale-95 border-b-4 border-indigo-800 italic"
+                                >
+                                    Efetivar Registro
+                                </button>
+                            </div>
+                        </div>
+                    </Card>
                 </div>
             )}
         </div>

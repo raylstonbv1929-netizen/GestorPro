@@ -1,15 +1,17 @@
 import React, { useState } from 'react';
 import {
-    Settings, Save, Database, Shield, Bell, Globe, RefreshCw, UploadCloud, DownloadCloud, Trash2, Smartphone, MessageSquare, Wind, Layout, Maximize, Minimize
+    Settings, Save, Database, Shield, Bell, Globe, RefreshCw, Smartphone, MessageSquare, Wind, Layout, Maximize, Minimize, Activity, Zap, Cpu, Terminal, Mail
 } from 'lucide-react';
 import { useApp } from '../../contexts/AppContext';
 import { Card } from '../../components/common/Card';
+import { toast } from 'sonner';
 
 export const SettingsPage = () => {
     const {
-        settings, setSettings, resetSystem,
+        settings, setSettings,
         isFullScreen, toggleFullScreen,
-        isSidebarOpen, setIsSidebarOpen
+        isSidebarOpen, setIsSidebarOpen,
+        addActivity
     } = useApp();
 
     const [localSettings, setLocalSettings] = useState({
@@ -20,208 +22,159 @@ export const SettingsPage = () => {
     const handleSave = () => {
         setSettings(localSettings);
         setIsSidebarOpen(localSettings.isSidebarOpen);
-        alert('Configurações salvas com sucesso!');
+        addActivity('Alterou configurações globais do núcleo', 'Sincronização OK', 'neutral');
+        toast.success('Parâmetros operacionais efetivados.');
     };
 
-    const handleExportData = () => {
-        const data = {
-            settings,
-            timestamp: new Date().toISOString(),
-            version: '1.0.0'
-        };
-        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `agrogest_backup_${new Date().toISOString().split('T')[0]}.json`;
-        a.click();
-    };
 
-    const handleImportData = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
 
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            try {
-                const data = JSON.parse(event.target?.result as string);
-                if (data.settings) {
-                    setSettings(data.settings);
-                    alert('Dados importados com sucesso! A página será recarregada.');
-                    window.location.reload();
-                }
-            } catch (err) {
-                alert('Erro ao importar arquivo. Verifique o formato.');
-            }
-        };
-        reader.readAsText(file);
-    };
+
 
     return (
-        <div className="animate-fade-in space-y-6 h-full flex flex-col">
-            <div className="flex items-center justify-between">
-                <h2 className="text-2xl font-bold text-white flex items-center gap-3">
-                    <Settings className="text-emerald-400" size={28} /> Configurações do Sistema
-                </h2>
+        <div className="animate-fade-in space-y-6 h-full flex flex-col p-2 overflow-y-auto custom-scrollbar pb-10">
+            {/* SETTINGS SENTINEL HEADER */}
+            <div className="flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-6 bg-slate-900/40 p-8 rounded-[1.5rem] md:rounded-[2.5rem] border border-slate-800/60 shadow-2xl backdrop-blur-xl relative overflow-hidden group">
+                <div className="absolute top-0 left-0 w-1.5 h-full bg-slate-500 z-20" />
+                <div className="relative z-10">
+                    <h2 className="text-3xl font-black text-white flex items-center gap-4 uppercase italic tracking-tighter">
+                        <Terminal className="text-slate-400" size={32} />
+                        Núcleo de Comando Operacional
+                    </h2>
+                    <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.4em] mt-2 ml-1 flex items-center gap-2">
+                        <Cpu size={12} className="text-slate-500/50" /> Configurações de Protocolo e Integridade do Sistema
+                    </p>
+                </div>
+
+                <button
+                    onClick={handleSave}
+                    className="relative z-10 bg-slate-100 hover:bg-white text-slate-950 px-12 py-5 rounded-2xl font-black text-xs uppercase tracking-[0.2em] transition-all shadow-xl shadow-white/5 active:scale-95 flex items-center justify-center gap-3 border-b-4 border-slate-300"
+                >
+                    <Save size={20} /> Efetivar Alterações
+                </button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 flex-1 overflow-y-auto pr-2 custom-scrollbar">
-                <div className="space-y-6">
-                    <Card className="space-y-4">
-                        <h3 className="text-sm font-bold text-white flex items-center gap-2 uppercase tracking-wider">
-                            <Globe size={16} className="text-blue-400" /> Geral
-                        </h3>
-                        <div className="space-y-4">
-                            <div className="space-y-1">
-                                <label className="text-xs text-slate-500 font-bold ml-1">Nome da Fazenda</label>
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 flex-1">
+                {/* PRIMARY CONFIG CLUSTER */}
+                <div className="lg:col-span-8 space-y-6">
+                    <Card variant="glass" className="p-8 border-slate-800/60 rounded-[2rem] space-y-8">
+                        <div className="flex items-center justify-between border-b border-slate-800/50 pb-6">
+                            <h3 className="text-lg font-black text-white uppercase italic tracking-tighter flex items-center gap-3">
+                                <Globe size={20} className="text-sky-500" /> Parâmetros de Identificação
+                            </h3>
+                            <span className="text-[8px] font-black text-slate-700 tracking-widest uppercase italic">SYS_ID_STABLE</span>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div className="space-y-2">
+                                <label className="text-[10px] text-slate-500 font-black uppercase tracking-widest ml-1 italic flex items-center gap-2">
+                                    <Zap size={10} className="text-sky-500" /> Designação Oficial da Unidade (Fazenda)
+                                </label>
                                 <input
                                     value={localSettings.farmName}
-                                    onChange={e => setLocalSettings({ ...localSettings, farmName: e.target.value })}
-                                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 text-white outline-none focus:border-emerald-500"
+                                    onChange={e => setLocalSettings({ ...localSettings, farmName: e.target.value.toUpperCase() })}
+                                    className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-6 py-4 text-sm font-black text-white outline-none focus:border-sky-500/50 transition-all italic placeholder:text-slate-800"
                                 />
                             </div>
-                            <div className="space-y-1">
-                                <label className="text-xs text-slate-500 font-bold ml-1">Moeda</label>
+                            <div className="space-y-2">
+                                <label className="text-[10px] text-slate-500 font-black uppercase tracking-widest ml-1 italic flex items-center gap-2">
+                                    <Database size={10} className="text-sky-500" /> Vetor de Câmbio (Moeda)
+                                </label>
                                 <select
                                     value={localSettings.currency}
                                     onChange={e => setLocalSettings({ ...localSettings, currency: e.target.value })}
-                                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 text-white outline-none focus:border-emerald-500"
+                                    className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-6 py-4 text-sm font-black text-white outline-none focus:border-sky-500/50 transition-all appearance-none cursor-pointer italic"
                                 >
-                                    <option value="R$">Real (R$)</option>
-                                    <option value="US$">Dólar (US$)</option>
-                                    <option value="€">Euro (€)</option>
+                                    <option value="R$">REAL BRASILEIRO (R$)</option>
+                                    <option value="US$">DÓLAR AMERICANO (US$)</option>
+                                    <option value="€">EURO (EURO)</option>
                                 </select>
                             </div>
                         </div>
                     </Card>
 
-                    <Card className="space-y-4">
-                        <h3 className="text-sm font-bold text-white flex items-center gap-2 uppercase tracking-wider">
-                            <Layout size={16} className="text-purple-400" /> Aparência
-                        </h3>
-                        <div className="space-y-4">
-                            <div className="flex items-center justify-between p-3 bg-slate-900/50 rounded-xl border border-slate-800">
-                                <div className="flex items-center gap-3">
-                                    <Wind size={18} className="text-slate-400" />
-                                    <span className="text-sm text-slate-200">Menu Lateral Aberto</span>
+                    <Card variant="glass" className="p-8 border-slate-800/60 rounded-[2rem] space-y-8">
+                        <div className="flex items-center justify-between border-b border-slate-800/50 pb-6">
+                            <h3 className="text-lg font-black text-white uppercase italic tracking-tighter flex items-center gap-3">
+                                <Layout size={20} className="text-emerald-500" /> Interface e UX
+                            </h3>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="flex items-center justify-between p-6 bg-slate-950 rounded-2xl border border-slate-900 group hover:border-emerald-500/20 transition-all">
+                                <div className="space-y-1">
+                                    <p className="text-[10px] font-black text-white uppercase italic tracking-widest flex items-center gap-2">
+                                        <Wind size={14} className="text-emerald-500" /> Hub Lateral
+                                    </p>
+                                    <p className="text-[9px] text-slate-600 font-black uppercase italic">Persistência do menu de navegação</p>
                                 </div>
                                 <button
                                     onClick={() => setLocalSettings({ ...localSettings, isSidebarOpen: !localSettings.isSidebarOpen })}
-                                    className={`w-12 h-6 rounded-full transition-all relative ${localSettings.isSidebarOpen ? 'bg-emerald-500' : 'bg-slate-700'}`}
+                                    className={`w-14 h-8 rounded-full transition-all relative border ${localSettings.isSidebarOpen ? 'bg-emerald-500/10 border-emerald-500' : 'bg-slate-900 border-slate-800'}`}
                                 >
-                                    <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${localSettings.isSidebarOpen ? 'right-1' : 'left-1'}`}></div>
+                                    <div className={`absolute top-1.5 w-4 h-4 rounded-full transition-all ${localSettings.isSidebarOpen ? 'right-1.5 bg-emerald-500 shadow-[0_0_10px_#10b981]' : 'left-1.5 bg-slate-700'}`}></div>
                                 </button>
                             </div>
-                            <div className="flex items-center justify-between p-3 bg-slate-900/50 rounded-xl border border-slate-800">
-                                <div className="flex items-center gap-3">
-                                    {isFullScreen ? <Minimize size={18} className="text-slate-400" /> : <Maximize size={18} className="text-slate-400" />}
-                                    <span className="text-sm text-slate-200">Tela Cheia</span>
+
+                            <div className="flex items-center justify-between p-6 bg-slate-950 rounded-2xl border border-slate-900 group hover:border-emerald-500/20 transition-all">
+                                <div className="space-y-1">
+                                    <p className="text-[10px] font-black text-white uppercase italic tracking-widest flex items-center gap-2">
+                                        <Maximize size={14} className="text-emerald-500" /> Imersão Total
+                                    </p>
+                                    <p className="text-[9px] text-slate-600 font-black uppercase italic">Estado de tela cheia operacional</p>
                                 </div>
                                 <button
                                     onClick={toggleFullScreen}
-                                    className={`w-12 h-6 rounded-full transition-all relative ${isFullScreen ? 'bg-emerald-500' : 'bg-slate-700'}`}
+                                    className={`w-14 h-8 rounded-full transition-all relative border ${isFullScreen ? 'bg-emerald-500/10 border-emerald-500' : 'bg-slate-900 border-slate-800'}`}
                                 >
-                                    <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${isFullScreen ? 'right-1' : 'left-1'}`}></div>
+                                    <div className={`absolute top-1.5 w-4 h-4 rounded-full transition-all ${isFullScreen ? 'right-1.5 bg-emerald-500 shadow-[0_0_10px_#10b981]' : 'left-1.5 bg-slate-700'}`}></div>
                                 </button>
                             </div>
                         </div>
                     </Card>
                 </div>
 
-                <div className="space-y-6">
-                    <Card className="space-y-4">
-                        <h3 className="text-sm font-bold text-white flex items-center gap-2 uppercase tracking-wider">
-                            <Bell size={16} className="text-amber-400" /> Notificações
+                {/* SECONDARY CONTROL CLUSTER */}
+                <div className="lg:col-span-4 space-y-6">
+                    <Card variant="glass" className="p-8 border-slate-800/60 rounded-[2rem] space-y-6 bg-slate-950/40">
+                        <h3 className="text-xs font-black text-white uppercase italic tracking-widest flex items-center gap-3">
+                            <Bell size={16} className="text-amber-500" /> Fluxo de Alertas
                         </h3>
                         <div className="space-y-3">
                             {[
-                                { id: 'email', label: 'E-mail', icon: <UploadCloud size={16} /> },
-                                { id: 'push', label: 'Push (Navegador)', icon: <Smartphone size={16} /> },
-                                { id: 'sms', label: 'SMS / WhatsApp', icon: <MessageSquare size={16} /> }
+                                { id: 'email', label: 'COMUNICAÇÃO E-MAIL', icon: Mail },
+                                { id: 'push', label: 'NOTIFICAÇÕES PUSH', icon: Smartphone },
+                                { id: 'sms', label: 'WHATSAPP / SMS', icon: MessageSquare }
                             ].map(item => (
-                                <div key={item.id} className="flex items-center justify-between p-3 bg-slate-900/50 rounded-xl border border-slate-800">
+                                <div key={item.id} className="flex items-center justify-between p-4 bg-slate-950 rounded-xl border border-slate-900 hover:border-amber-500/20 transition-all">
                                     <div className="flex items-center gap-3">
-                                        <span className="text-slate-400">{item.icon}</span>
-                                        <span className="text-sm text-slate-200">{item.label}</span>
+                                        <item.icon size={14} className="text-slate-700" />
+                                        <span className="text-[9px] font-black text-slate-400 tracking-wider uppercase italic">{item.label}</span>
                                     </div>
                                     <button
                                         onClick={() => setLocalSettings({
                                             ...localSettings,
                                             notifications: { ...localSettings.notifications, [item.id]: !localSettings.notifications[item.id as keyof typeof localSettings.notifications] }
                                         })}
-                                        className={`w-12 h-6 rounded-full transition-all relative ${localSettings.notifications[item.id as keyof typeof localSettings.notifications] ? 'bg-emerald-500' : 'bg-slate-700'}`}
+                                        className={`w-10 h-6 rounded-full transition-all relative ${localSettings.notifications[item.id as keyof typeof localSettings.notifications] ? 'bg-amber-500/10 border border-amber-500' : 'bg-slate-900 border border-slate-800'}`}
                                     >
-                                        <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${localSettings.notifications[item.id as keyof typeof localSettings.notifications] ? 'right-1' : 'left-1'}`}></div>
+                                        <div className={`absolute top-1 w-3.5 h-3.5 rounded-full transition-all ${localSettings.notifications[item.id as keyof typeof localSettings.notifications] ? 'right-1 bg-amber-500' : 'left-1 bg-slate-800'}`}></div>
                                     </button>
                                 </div>
                             ))}
                         </div>
                     </Card>
 
-                    <Card className="space-y-4">
-                        <h3 className="text-sm font-bold text-white flex items-center gap-2 uppercase tracking-wider">
-                            <Shield size={16} className="text-rose-400" /> Segurança
-                        </h3>
-                        <div className="space-y-4">
-                            <div className="p-3 bg-slate-900/50 rounded-xl border border-slate-800">
-                                <p className="text-xs text-slate-400 mb-2">Sua conta está protegida por criptografia de ponta a ponta.</p>
-                                <button className="text-xs font-bold text-emerald-400 hover:text-emerald-300 transition-colors">Alterar Senha</button>
-                            </div>
-                        </div>
-                    </Card>
-                </div>
 
-                <div className="space-y-6">
-                    <Card className="space-y-4">
-                        <h3 className="text-sm font-bold text-white flex items-center gap-2 uppercase tracking-wider">
-                            <Database size={16} className="text-emerald-400" /> Dados e Backup
-                        </h3>
-                        <div className="space-y-3">
-                            <button
-                                onClick={handleExportData}
-                                className="w-full flex items-center justify-between p-3 bg-slate-900/50 hover:bg-slate-900 rounded-xl border border-slate-800 transition-all group"
-                            >
-                                <div className="flex items-center gap-3">
-                                    <DownloadCloud size={18} className="text-slate-400 group-hover:text-emerald-400" />
-                                    <span className="text-sm text-slate-200">Exportar Backup</span>
-                                </div>
-                                <Save size={14} className="text-slate-600" />
-                            </button>
-
-                            <label className="w-full flex items-center justify-between p-3 bg-slate-900/50 hover:bg-slate-900 rounded-xl border border-slate-800 transition-all group cursor-pointer">
-                                <div className="flex items-center gap-3">
-                                    <UploadCloud size={18} className="text-slate-400 group-hover:text-blue-400" />
-                                    <span className="text-sm text-slate-200">Importar Dados</span>
-                                </div>
-                                <input type="file" accept=".json" onChange={handleImportData} className="hidden" />
-                                <RefreshCw size={14} className="text-slate-600" />
-                            </label>
-
-                            <div className="pt-4 mt-4 border-t border-slate-800">
-                                <button
-                                    onClick={resetSystem}
-                                    className="w-full flex items-center gap-3 p-3 bg-rose-500/10 hover:bg-rose-500/20 rounded-xl border border-rose-500/20 text-rose-400 transition-all group"
-                                >
-                                    <Trash2 size={18} />
-                                    <span className="text-sm font-bold">Resetar Sistema</span>
-                                </button>
-                                <p className="text-[10px] text-slate-600 mt-2 px-1 italic">Atenção: Isso apagará todos os seus dados permanentemente.</p>
-                            </div>
-                        </div>
-                    </Card>
                 </div>
             </div>
 
-            <div className="mt-auto pt-6 border-t border-slate-800 flex justify-between items-center">
-                <div className="text-xs text-slate-500">
-                    Versão do Sistema: <span className="text-slate-400 font-bold">1.0.0-stable</span>
-                </div>
-                <button
-                    onClick={handleSave}
-                    className="bg-emerald-500 hover:bg-emerald-400 text-emerald-950 px-10 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all shadow-xl shadow-emerald-500/20 flex items-center gap-3 active:scale-95"
-                >
-                    <Save size={18} /> Salvar Alterações
-                </button>
+            {/* SYSTEM VERSION TAMP */}
+            <div className="mt-auto py-6 flex justify-between items-center text-slate-800">
+                <span className="text-[9px] font-black uppercase tracking-[0.5em] italic">Versão Operacional: 5.0.0_STABLE_PRO_MAX</span>
+                <span className="flex items-center gap-4">
+                    <span className="text-[9px] font-black uppercase tracking-widest bg-emerald-500/5 text-emerald-500/40 px-3 py-1 rounded-full border border-emerald-500/10 italic">Core Integrity: OK</span>
+                    <span className="text-[9px] font-black uppercase tracking-widest bg-sky-500/5 text-sky-500/40 px-3 py-1 rounded-full border border-sky-500/10 italic">Sync Status: RealTime</span>
+                </span>
             </div>
         </div>
     );

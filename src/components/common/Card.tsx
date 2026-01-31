@@ -7,6 +7,7 @@ interface CardProps {
     variant?: 'default' | 'highlight' | 'glass' | 'white';
     style?: React.CSSProperties;
     rounded?: string;
+    onClick?: () => void;
 }
 
 export const Card = ({
@@ -15,7 +16,8 @@ export const Card = ({
     glow = false,
     variant = 'default',
     style = {},
-    rounded = "rounded-2xl"
+    rounded = "rounded-2xl",
+    onClick
 }: CardProps) => {
     const variants = {
         default: 'bg-slate-800/40 border-slate-700/50',
@@ -26,7 +28,8 @@ export const Card = ({
 
     return (
         <div
-            className={`backdrop-blur-xl border p-6 shadow-2xl relative transition-all duration-500 hover:scale-[1.01] hover:border-emerald-500/30 hover:shadow-emerald-900/10 overflow-hidden ${rounded} will-change-transform ${variants[variant]} ${className} ${glow ? 'hover:shadow-emerald-900/20' : ''}`}
+            onClick={onClick}
+            className={`backdrop-blur-xl border p-6 shadow-2xl relative transition-all duration-500 hover:scale-[1.01] hover:border-emerald-500/30 hover:shadow-emerald-900/10 overflow-hidden ${rounded} will-change-transform ${variants[variant]} ${className} ${glow ? 'hover:shadow-emerald-900/20' : ''} ${onClick ? 'cursor-pointer' : ''}`}
             style={{ transform: 'translateZ(0)', ...style }}
         >
             {children}

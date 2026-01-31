@@ -73,9 +73,13 @@ export interface Client {
     contact: string;
     email: string;
     phone: string;
+    cnpj?: string;
+    address?: string;
     city: string;
     rating: number;
     status: 'active' | 'inactive';
+    creditLimit?: number;
+    usedCredit?: number;
 }
 
 export interface Supplier {
@@ -85,6 +89,9 @@ export interface Supplier {
     contact: string;
     email: string;
     phone: string;
+    cnpj?: string;
+    address?: string;
+    leadTime?: string;
     rating: number;
     status: 'active' | 'inactive';
 }

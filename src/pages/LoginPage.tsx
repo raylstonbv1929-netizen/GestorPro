@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { Mail, Lock, Loader2, AlertCircle, ArrowRight, Sprout } from 'lucide-react';
+import { Mail, Lock, Loader2, AlertCircle, ArrowRight, Sprout, ShieldCheck, Zap, Cpu, Terminal, Activity, ShieldAlert } from 'lucide-react';
 
 export default function LoginPage() {
     const [email, setEmail] = useState('');
@@ -34,103 +34,129 @@ export default function LoginPage() {
                     password,
                 });
                 if (error) throw error;
-                setMessage('Cadastro realizado! Verifique seu email para confirmar.');
+                setMessage('Protocolo iniciado! Verifique seu vetor de e-mail.');
                 setMode('login');
             }
         } catch (err: any) {
-            setError(err.message || 'Ocorreu um erro ao tentar autenticar.');
+            setError(err.message || 'Falha na autenticação do núcleo.');
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <div className="min-h-screen bg-slate-950 text-slate-200 selection:bg-emerald-500/30 font-sans overflow-hidden flex flex-col md:flex-row shadow-inner">
-            {/* Background Grain Effect */}
-            <div className="fixed inset-0 opacity-[0.03] pointer-events-none bg-[url('https://grainy-gradients.vercel.app/noise.svg')] z-50"></div>
+        <div className="min-h-screen bg-slate-950 text-slate-200 selection:bg-emerald-500/30 overflow-hidden flex flex-col md:flex-row relative">
+            {/* Background Texture & Scanner Line */}
+            <div className="fixed inset-0 opacity-[0.02] pointer-events-none bg-[url('https://grainy-gradients.vercel.app/noise.svg')] z-50 overflow-hidden">
+                <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-emerald-500/20 to-transparent animate-scanner shadow-[0_0_15px_#10b981]" />
+            </div>
 
-            {/* Visual Section - Massive Typographic Hero */}
-            <div className="relative flex-1 flex flex-col justify-between p-8 md:p-16 border-b md:border-b-0 md:border-r border-slate-900 overflow-hidden group">
-                {/* Asymmetric Ornament */}
-                <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 blur-[100px] -mr-32 -mt-32 transition-colors duration-1000 group-hover:bg-emerald-500/10"></div>
+            {/* Left Section - Tactical Branding */}
+            <div className="relative flex-1 flex flex-col justify-between p-12 md:p-24 border-b md:border-b-0 md:border-r border-slate-900/60 overflow-hidden group">
+                {/* Sentinel Stripe */}
+                <div className="absolute top-0 right-0 w-1 md:w-1.5 h-full bg-emerald-500/20 z-20" />
 
-                <div className={`transition-all duration-1000 ease-out transform ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
-                    <div className="flex items-center gap-3 mb-12">
-                        <div className="w-12 h-12 bg-emerald-500 flex items-center justify-center">
-                            <Sprout className="text-slate-950" size={28} strokeWidth={2.5} />
+                {/* Asymmetric Light Cluster */}
+                <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-emerald-500/5 blur-[120px] -ml-64 -mt-64 rounded-full" />
+
+                <div className={`relative z-10 transition-all duration-1000 ease-out transform ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-12 opacity-0'}`}>
+                    <div className="flex items-center gap-5 mb-24">
+                        <div className="w-16 h-16 bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center rounded-2xl shadow-lg shadow-emerald-500/5 group-hover:bg-emerald-500 transition-all duration-500">
+                            <Sprout className="text-emerald-500 group-hover:text-slate-950 transition-colors" size={32} strokeWidth={2.5} />
                         </div>
-                        <span className="text-xl font-black tracking-tighter uppercase italic">AgroGest<span className="text-emerald-500">.</span></span>
+                        <div className="flex flex-col">
+                            <span className="text-2xl font-black tracking-tighter uppercase italic text-white">Gestor<span className="text-emerald-500">Pro</span></span>
+                            <span className="text-[8px] font-black text-slate-600 uppercase tracking-[0.5em] mt-1 italic">Industrial SpeedGrid™ v5.0</span>
+                        </div>
                     </div>
 
-                    <h1 className="text-6xl md:text-[120px] font-black leading-[0.85] tracking-tighter uppercase text-white/90 break-words max-w-2xl">
-                        A Nova <br />
-                        <span className="text-emerald-500 outline-text">Era do</span> <br />
-                        Campo
-                    </h1>
+                    <div className="space-y-4">
+                        <h1 className="text-[clamp(3.5rem,8vw,8rem)] font-black leading-[0.8] tracking-tighter uppercase text-white lg:max-w-3xl drop-shadow-2xl italic">
+                            A Nova <br />
+                            <span className="text-emerald-500 outline-text">Matriz do</span> <br />
+                            Campo
+                        </h1>
+                    </div>
                 </div>
 
-                <div className={`mt-auto transition-all duration-1000 delay-300 ease-out ${isVisible ? 'translate-x-0 opacity-100' : '-translate-x-10 opacity-0'}`}>
-                    <p className="text-slate-500 max-w-sm text-sm uppercase tracking-widest leading-relaxed">
-                        Tecnologia de ponta para gestão agrícola de alta performance.
-                        Precisão, controle e produtividade em um só lugar.
-                    </p>
-                    <div className="mt-8 flex gap-4">
-                        <div className="h-px w-12 bg-slate-800 self-center"></div>
-                        <span className="text-[10px] text-slate-600 font-bold uppercase tracking-[0.3em]">GestorPro v2.0</span>
+                <div className={`relative z-10 mt-auto transition-all duration-1000 delay-300 ease-out ${isVisible ? 'translate-x-0 opacity-100' : '-translate-x-12 opacity-0'}`}>
+                    <div className="flex items-center gap-6">
+                        <div className="p-4 bg-slate-900 border border-slate-800 rounded-2xl flex flex-col items-center justify-center gap-1 group/stats">
+                            <Activity size={16} className="text-emerald-500 group-hover/stats:scale-110 transition-transform" />
+                            <span className="text-[10px] font-black text-white italic">REALTIME</span>
+                        </div>
+                        <div className="p-4 bg-slate-900 border border-slate-800 rounded-2xl flex flex-col items-center justify-center gap-1 group/stats">
+                            <ShieldCheck size={16} className="text-emerald-500 group-hover/stats:scale-110 transition-transform" />
+                            <span className="text-[10px] font-black text-white italic">ECO_SEC</span>
+                        </div>
+                        <div className="max-w-xs ml-4">
+                            <p className="text-slate-500 text-[10px] font-black uppercase tracking-[0.2em] leading-relaxed italic">
+                                Engenharia de dados aplicada à produtividade agropecuária de alta precisão.
+                            </p>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            {/* Form Section - Floating extreme-edge tension */}
-            <div className="w-full md:w-[450px] bg-slate-950 flex flex-col justify-center p-8 md:p-16 relative z-10">
-                <div className={`transition-all duration-1000 delay-500 ease-out ${isVisible ? 'translate-x-0 opacity-100' : 'translate-x-20 opacity-0'}`}>
-                    <div className="mb-12">
-                        <h2 className="text-3xl font-bold text-white tracking-tight leading-none mb-2">
-                            {mode === 'login' ? 'Acessar Sistema' : 'Criar Conta'}
+            {/* Right Section - Authentic Access Terminal */}
+            <div className="w-full md:w-[600px] bg-slate-950 flex flex-col justify-center p-12 md:p-24 relative z-10">
+                <div className={`transition-all duration-1000 delay-500 ease-out ${isVisible ? 'translate-x-0 opacity-100' : 'translate-x-12 opacity-0'}`}>
+                    <div className="mb-16">
+                        <div className="flex items-center gap-3 mb-4">
+                            <Terminal size={18} className="text-emerald-500" />
+                            <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest italic">Acesso Restrito ao Núcleo</span>
+                        </div>
+                        <h2 className="text-4xl font-black text-white italic tracking-tighter uppercase">
+                            {mode === 'login' ? 'Autenticar Operador' : 'Homologar Novo Id'}
                         </h2>
-                        <p className="text-slate-500 text-sm">Insira suas credenciais abaixo</p>
                     </div>
 
-                    <form onSubmit={handleAuth} className="space-y-6">
+                    <form onSubmit={handleAuth} className="space-y-8">
                         {error && (
-                            <div className="bg-rose-500/5 border-l-2 border-rose-500 text-rose-500 p-4 text-xs font-bold flex items-start gap-4 animate-in fade-in slide-in-from-left-2 duration-300">
-                                <AlertCircle size={18} className="shrink-0" />
-                                <span>{error}</span>
+                            <div className="bg-rose-500/5 border-l-4 border-rose-500 p-5 rounded-r-2xl animate-in fade-in slide-in-from-left-4 duration-500 flex items-start gap-4">
+                                <ShieldAlert size={20} className="text-rose-500 shrink-0 mt-0.5" />
+                                <div className="space-y-1">
+                                    <p className="text-[10px] font-black text-rose-500 uppercase tracking-widest">Falha de Autenticação</p>
+                                    <p className="text-[11px] font-bold text-rose-400 italic">{error}</p>
+                                </div>
                             </div>
                         )}
                         {message && (
-                            <div className="bg-emerald-500/5 border-l-2 border-emerald-500 text-emerald-500 p-4 text-xs font-bold flex items-start gap-4 animate-in fade-in slide-in-from-left-2 duration-300">
-                                <AlertCircle size={18} className="shrink-0" />
-                                <span>{message}</span>
+                            <div className="bg-emerald-500/5 border-l-4 border-emerald-500 p-5 rounded-r-2xl animate-in fade-in slide-in-from-left-4 duration-500 flex items-start gap-4">
+                                <ShieldCheck size={20} className="text-emerald-500 shrink-0 mt-0.5" />
+                                <div className="space-y-1">
+                                    <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">Protocolo Emitido</p>
+                                    <p className="text-[11px] font-bold text-emerald-500/80 italic">{message}</p>
+                                </div>
                             </div>
                         )}
 
-                        <div className="space-y-4">
+                        <div className="space-y-6">
                             <div className="group space-y-2">
-                                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest transition-colors group-focus-within:text-emerald-500">Email Corporativo</label>
-                                <div className="relative border-b border-slate-800 transition-colors group-focus-within:border-emerald-500">
-                                    <Mail className="absolute left-0 top-3 text-slate-600" size={18} />
+                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest italic ml-1 transition-colors group-focus-within:text-emerald-400">Vetor de E-mail Corporativo</label>
+                                <div className="relative border-b-2 border-slate-900/60 transition-all group-focus-within:border-emerald-500 shadow-inner">
+                                    <Mail className="absolute left-0 top-1/2 -translate-y-1/2 text-slate-700 transition-colors group-focus-within:text-emerald-500" size={18} />
                                     <input
                                         type="email"
                                         required
                                         value={email}
                                         onChange={(e) => setEmail(e.target.value)}
-                                        className="w-full bg-transparent pl-8 pr-4 py-3 text-sm text-white outline-none placeholder:text-slate-800"
-                                        placeholder="nome@fazenda.com"
+                                        className="w-full bg-transparent pl-10 pr-4 py-4 text-sm font-black text-white outline-none placeholder:text-slate-800 italic uppercase"
+                                        placeholder="EX: ADMIN@SPEEDGRID.COM"
                                     />
                                 </div>
                             </div>
 
                             <div className="group space-y-2">
-                                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest transition-colors group-focus-within:text-emerald-500">Senha Segura</label>
-                                <div className="relative border-b border-slate-800 transition-colors group-focus-within:border-emerald-500">
-                                    <Lock className="absolute left-0 top-3 text-slate-600" size={18} />
+                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest italic ml-1 transition-colors group-focus-within:text-emerald-400">Chave de Integridade (Senha)</label>
+                                <div className="relative border-b-2 border-slate-900/60 transition-all group-focus-within:border-emerald-500 shadow-inner">
+                                    <Lock className="absolute left-0 top-1/2 -translate-y-1/2 text-slate-700 transition-colors group-focus-within:text-emerald-500" size={18} />
                                     <input
                                         type="password"
                                         required
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
-                                        className="w-full bg-transparent pl-8 pr-4 py-3 text-sm text-white outline-none placeholder:text-slate-800"
+                                        className="w-full bg-transparent pl-10 pr-4 py-4 text-sm font-black text-white outline-none placeholder:text-slate-800"
                                         placeholder="••••••••"
                                     />
                                 </div>
@@ -140,48 +166,53 @@ export default function LoginPage() {
                         <button
                             type="submit"
                             disabled={loading}
-                            className="w-full h-14 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black uppercase text-xs tracking-[0.2em] transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed group relative overflow-hidden"
+                            className="w-full h-18 py-6 bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-black uppercase text-xs tracking-[0.4em] transition-all flex items-center justify-center gap-4 disabled:opacity-50 disabled:cursor-not-allowed group relative overflow-hidden active:scale-[0.98] border-b-4 border-emerald-800 shadow-2xl shadow-emerald-500/20 italic"
                         >
                             {loading ? (
-                                <Loader2 size={20} className="animate-spin" />
+                                <Loader2 size={24} className="animate-spin" />
                             ) : (
                                 <>
-                                    <span>{mode === 'login' ? 'Entrar Agora' : 'Finalizar Cadastro'}</span>
-                                    <ArrowRight size={18} className="transition-transform group-hover:translate-x-1" />
+                                    <span>{mode === 'login' ? 'Acessar Terminal' : 'Finalizar Registro'}</span>
+                                    <ArrowRight size={20} className="transition-transform group-hover:translate-x-2" />
                                 </>
                             )}
                         </button>
                     </form>
 
-                    <div className="mt-12 pt-8 border-t border-slate-900">
-                        <p className="text-slate-600 text-[10px] font-bold uppercase tracking-widest text-center">
-                            {mode === 'login' ? 'Ainda não é membro?' : 'Já possui acesso?'}
+                    <div className="mt-16 pt-8 border-t border-slate-900/60">
+                        <p className="text-slate-700 text-[10px] font-black uppercase tracking-[0.3em] text-center italic">
+                            {mode === 'login' ? 'Falta de credenciais?' : 'Ja possui acesso tático?'}
                             <button
                                 onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setError(null); setMessage(null); }}
-                                className="text-emerald-500 ml-2 hover:text-emerald-400 underline decoration-emerald-500/30 underline-offset-4"
+                                className="text-emerald-500 ml-3 hover:text-emerald-400 transition-colors underline underline-offset-8 decoration-emerald-500/20"
                             >
-                                {mode === 'login' ? 'Solicitar Acesso' : 'Efetuar Login'}
+                                {mode === 'login' ? 'Habilitar Perfil' : 'Efetuar Login'}
                             </button>
                         </p>
                     </div>
                 </div>
 
-                <div className="mt-auto pt-8 flex justify-center opacity-30">
-                    <div className="flex gap-1">
-                        {[1, 2, 3].map(i => (
-                            <div key={i} className="w-1.5 h-1.5 bg-slate-700"></div>
-                        ))}
-                    </div>
+                {/* Footer Trace Ornament */}
+                <div className="mt-auto flex justify-center pt-12 gap-1.5 opacity-20 group">
+                    {[1, 2, 3, 4, 5].map(i => (
+                        <div key={i} className="w-2 h-0.5 bg-slate-800 group-hover:bg-emerald-500 transition-colors" />
+                    ))}
                 </div>
             </div>
 
             <style>{`
                 .outline-text {
                     color: transparent;
-                    -webkit-text-stroke: 1px rgba(255, 255, 255, 0.3);
+                    -webkit-text-stroke: 1px rgba(16, 185, 129, 0.4);
+                }
+                @keyframes scanner {
+                    0% { top: -10%; }
+                    100% { top: 110%; }
+                }
+                .animate-scanner {
+                    animation: scanner 4s linear infinite;
                 }
             `}</style>
         </div>
     );
 }
-

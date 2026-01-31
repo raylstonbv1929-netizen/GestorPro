@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
-    Plus, Search, History as HistoryIcon, Box, Settings2, Database, SlidersHorizontal, X as CloseIcon, Table
+    Plus, Search, History as HistoryIcon, Box, Settings2, Database, SlidersHorizontal, X as CloseIcon, Table,
+    Activity, Zap, Filter, LayoutGrid, List, Layers, Package
 } from 'lucide-react';
 import { useApp } from '../../contexts/AppContext';
 import { Card } from '../../components/common/Card';
@@ -27,6 +28,7 @@ export const ProductsPage = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [activeSubTab, setActiveSubTab] = useState('list'); // 'list' or 'movements'
     const [isProductFormOpen, setIsProductFormOpen] = useState(false);
+    const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
     const [isAdvancedFiltersOpen, setIsAdvancedFiltersOpen] = useState(false);
     const [editingProductId, setEditingProductId] = useState<number | null>(null);
     const [activeFormZone, setActiveFormZone] = useState(1);
@@ -52,55 +54,60 @@ export const ProductsPage = () => {
         unitWeight: '', minStock: '', price: '', location: '', batch: '', expirationDate: ''
     });
 
-    const filteredProducts = products.filter(p => {
-        const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            p.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            (p.location && p.location.toLowerCase().includes(searchTerm.toLowerCase())) ||
-            (p.batch && p.batch.toLowerCase().includes(searchTerm.toLowerCase()));
+    const filteredProducts = useMemo(() => {
+        return products.filter(p => {
+            const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                p.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                (p.location && p.location.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                (p.batch && p.batch.toLowerCase().includes(searchTerm.toLowerCase()));
 
-        const matchesCategory = advancedFilters.categories.length === 0 || advancedFilters.categories.includes(p.category);
+            const matchesCategory = advancedFilters.categories.length === 0 || advancedFilters.categories.includes(p.category);
 
-        const matchesStatus = advancedFilters.status.length === 0 || advancedFilters.status.some(s => {
-            if (s === 'ok') return p.status === 'ok';
-            if (s === 'low') return p.status === 'low';
-            if (s === 'critical') return p.status === 'critical';
-            if (s === 'expiring') {
+            const matchesStatus = advancedFilters.status.length === 0 || advancedFilters.status.some(s => {
+                if (s === 'ok') return p.status === 'ok';
+                if (s === 'low') return p.status === 'low';
+                if (s === 'critical') return p.status === 'critical';
+                if (s === 'expiring') {
+                    if (!p.expirationDate) return false;
+                    const daysToExpiration = (new Date(p.expirationDate).getTime() - new Date().getTime()) / (1000 * 3600 * 24);
+                    return daysToExpiration > 0 && daysToExpiration <= 30;
+                }
+                return true;
+            });
+
+            const matchesPrice = (advancedFilters.minPrice === '' || p.price >= parseValue(advancedFilters.minPrice)) &&
+                (advancedFilters.maxPrice === '' || p.price <= parseValue(advancedFilters.maxPrice));
+
+            const matchesStock = (advancedFilters.minStock === '' || p.stock >= parseValue(advancedFilters.minStock)) &&
+                (advancedFilters.maxStock === '' || p.stock <= parseValue(advancedFilters.maxStock));
+
+            const matchesExpirationWindow = advancedFilters.expirationWindow === null || (() => {
                 if (!p.expirationDate) return false;
                 const daysToExpiration = (new Date(p.expirationDate).getTime() - new Date().getTime()) / (1000 * 3600 * 24);
-                return daysToExpiration > 0 && daysToExpiration <= 30;
-            }
-            return true;
+                return daysToExpiration > 0 && daysToExpiration <= advancedFilters.expirationWindow;
+            })();
+
+            return matchesSearch && matchesCategory && matchesStatus && matchesPrice && matchesStock && matchesExpirationWindow;
         });
+    }, [products, searchTerm, advancedFilters]);
 
-        const matchesPrice = (advancedFilters.minPrice === '' || p.price >= parseValue(advancedFilters.minPrice)) &&
-            (advancedFilters.maxPrice === '' || p.price <= parseValue(advancedFilters.maxPrice));
-
-        const matchesStock = (advancedFilters.minStock === '' || p.stock >= parseValue(advancedFilters.minStock)) &&
-            (advancedFilters.maxStock === '' || p.stock <= parseValue(advancedFilters.maxStock));
-
-        const matchesExpirationWindow = advancedFilters.expirationWindow === null || (() => {
-            if (!p.expirationDate) return false;
-            const daysToExpiration = (new Date(p.expirationDate).getTime() - new Date().getTime()) / (1000 * 3600 * 24);
-            return daysToExpiration > 0 && daysToExpiration <= advancedFilters.expirationWindow;
-        })();
-
-        return matchesSearch && matchesCategory && matchesStatus && matchesPrice && matchesStock && matchesExpirationWindow;
-    });
-
-    const totalItems = products.length;
-    const lowStockItems = products.filter(p => p.status !== 'ok').length;
-    const totalStockValue = products.reduce((acc, p) => acc + (Number(p.stock) * Number(p.price)), 0);
+    const stats = useMemo(() => {
+        const totalItems = products.length;
+        const lowStockItems = products.filter(p => p.status !== 'ok').length;
+        const totalStockValue = products.reduce((acc, p) => acc + (Number(p.stock) * Number(p.price)), 0);
+        return { totalItems, lowStockItems, totalStockValue };
+    }, [products]);
 
     const handleQuickAdjust = (payload: any) => {
         handleStockAdjustment({
             ...payload,
             customUser: payload.operator
         });
-        addActivity(payload.type === 'in' ? 'Entrada (Ajuste Rápido)' : 'Saída (Ajuste Rápido)', `Produto ID: ${payload.productId}`);
+        addActivity(payload.type === 'in' ? 'Entrada (Ajuste Rápido)' : 'Saída (Ajuste Rápido)', `Produto ID: ${payload.productId}`, 'neutral');
     };
 
-    const handleProductSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleProductSubmit = (e?: React.FormEvent, stayOpen = false) => {
+        if (e) e.preventDefault();
         const productData: any = {
             ...productForm,
             stock: parseValue(productForm.stock),
@@ -112,12 +119,12 @@ export const ProductsPage = () => {
 
         if (editingProductId) {
             setProducts(products.map(p => p.id === editingProductId ? { ...p, ...productData } : p));
-            addActivity('Atualizou registro técnico', productData.name);
+            addActivity('Atualizou registro técnico', productData.name, 'neutral');
         } else {
             const newId = Date.now();
             const newProduct = { ...productData, id: newId };
             setProducts([newProduct, ...products]);
-            addActivity('Cadastrou novo insumo', productData.name);
+            addActivity('Cadastrou novo insumo', productData.name, 'neutral');
 
             if (productData.stock > 0) {
                 const movement: any = {
@@ -136,20 +143,19 @@ export const ProductsPage = () => {
                 setStockMovements([movement, ...stockMovements]);
             }
         }
-        setIsProductFormOpen(false);
+        if (!stayOpen) setIsProductFormOpen(false);
+        resetProductForm();
+    };
+
+    const resetProductForm = () => {
         setEditingProductId(null);
         setActiveFormZone(1);
         setProductForm({ name: '', category: 'Fertilizantes', stock: '', unit: 'kg', unitWeight: '', minStock: '', price: '', location: '', batch: '', expirationDate: '' });
     };
 
     const handleBulkSubmit = (newProducts: any[]) => {
-        const productsWithIds = newProducts.map((p, index) => ({
-            ...p,
-            id: Date.now() + index
-        }));
-
+        const productsWithIds = newProducts.map((p, index) => ({ ...p, id: Date.now() + index }));
         setProducts([...productsWithIds, ...products]);
-
         const newMovements = productsWithIds.map((p, index) => ({
             id: Date.now() + 100 + index,
             productId: p.id,
@@ -163,9 +169,8 @@ export const ProductsPage = () => {
             user: settings.userName || 'Sistema',
             batch: ''
         }));
-
         setStockMovements([...newMovements, ...stockMovements]);
-        addActivity('Implantação Massiva Concluída', `${newProducts.length} novos insumos registrados`);
+        addActivity('Implantação Massiva Concluída', `${newProducts.length} novos insumos registrados`, 'neutral');
         setIsBulkEntryOpen(false);
     };
 
@@ -173,7 +178,7 @@ export const ProductsPage = () => {
         if (confirm('Deseja realmente remover este item do inventário? Esta ação é irreversível.')) {
             const product = products.find(p => p.id === id);
             if (product) {
-                addActivity('Removeu do inventário', product.name);
+                addActivity('Removeu do inventário', product.name, 'neutral');
             }
             setProducts(products.filter(p => p.id !== id));
         }
@@ -204,55 +209,49 @@ export const ProductsPage = () => {
         const op = ['EPIs', 'Embalagens', 'Limpeza'];
         const pecuaria = ['Medicamentos Veterinários', 'Suplementos & Nutrição', 'Vacinas'];
 
-        if (agricolas.includes(category)) return 'text-emerald-500 bg-emerald-500/10';
-        if (logistica.includes(category)) return 'text-blue-500 bg-blue-500/10';
-        if (infra.includes(category)) return 'text-amber-500 bg-amber-500/10';
-        if (op.includes(category)) return 'text-cyan-500 bg-cyan-500/10';
-        if (pecuaria.includes(category)) return 'text-rose-500 bg-rose-500/10';
-        return 'text-slate-500 bg-slate-500/10';
+        if (agricolas.includes(category)) return 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20 shadow-[0_0_10px_rgba(16,185,129,0.1)]';
+        if (logistica.includes(category)) return 'text-sky-500 bg-sky-500/10 border-sky-500/20';
+        if (infra.includes(category)) return 'text-amber-500 bg-amber-500/10 border-amber-500/20';
+        if (op.includes(category)) return 'text-cyan-500 bg-cyan-500/10 border-cyan-500/20';
+        if (pecuaria.includes(category)) return 'text-rose-500 bg-rose-500/10 border-rose-500/20';
+        return 'text-slate-500 bg-slate-500/10 border-slate-500/20';
     };
 
     return (
-        <div className="animate-fade-in space-y-6 flex flex-col min-h-0 h-full p-1">
-            {/* HEADER TÁTICO */}
-            <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6 bg-slate-900/40 p-8 rounded-[2rem] border border-slate-800/60 backdrop-blur-xl shadow-2xl relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 blur-[100px] -mr-32 -mt-32 rounded-full" />
+        <div className="animate-fade-in space-y-6 h-full flex flex-col p-2 overflow-y-auto custom-scrollbar pb-10">
+            {/* PRODUCT SENTINEL COMMAND CENTER */}
+            <div className="flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-6 bg-slate-900/40 p-8 rounded-[1.5rem] md:rounded-[2.5rem] border border-slate-800/60 shadow-2xl backdrop-blur-xl relative overflow-hidden group">
+                <div className="absolute top-0 left-0 w-1.5 h-full bg-emerald-500 z-20" />
 
-                <div className="flex items-center gap-6 relative z-10">
-                    <div className="w-20 h-20 rounded-3xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-500 shadow-lg shadow-emerald-500/10 relative group">
-                        <Database size={36} strokeWidth={2.5} className="group-hover:scale-110 transition-transform" />
-                        <div className="absolute -top-2 -right-2 w-6 h-6 bg-emerald-500 text-emerald-950 text-[10px] font-black rounded-lg flex items-center justify-center border-4 border-slate-900 shadow-xl">
-                            {totalItems}
-                        </div>
+                <div className="relative z-10 flex items-center gap-6">
+                    <div className="w-16 h-16 rounded-[1.25rem] bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-500 shadow-lg shadow-emerald-500/10">
+                        <Database size={32} strokeWidth={2.5} />
                     </div>
                     <div>
-                        <div className="flex items-center gap-3 mb-1">
-                            <h2 className="text-3xl font-black text-white tracking-tighter uppercase italic">Console de Inventário</h2>
-                            <span className="px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-lg text-[10px] text-emerald-500 font-black uppercase tracking-widest">PRO MAX v4</span>
-                        </div>
-                        <p className="text-slate-500 text-[11px] font-black uppercase tracking-[0.4em] flex items-center gap-3 italic">
-                            <Settings2 size={12} className="text-emerald-500" /> Auditoria Logística de Precisão
+                        <h2 className="text-3xl font-black text-white flex items-center gap-4 uppercase italic tracking-tighter">
+                            Console de Inventário
+                        </h2>
+                        <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.4em] mt-2 ml-1 flex items-center gap-2">
+                            Auditoria Logística e Controle de Insumos
                         </p>
                     </div>
                 </div>
 
-                <div className="flex bg-slate-950 p-2 rounded-2xl border border-slate-800 shadow-inner relative z-10 w-full xl:w-auto">
+                <div className="flex bg-slate-950 p-2 rounded-2xl border border-slate-800 shadow-inner relative z-10 w-full lg:w-auto">
                     <button
                         onClick={() => setActiveSubTab('list')}
-                        className={`flex-1 xl:flex-none px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-500 relative overflow-hidden group ${activeSubTab === 'list' ? 'text-emerald-950' : 'text-slate-500 hover:text-slate-300'}`}
+                        className={`flex-1 lg:flex-none px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-500 relative overflow-hidden group ${activeSubTab === 'list' ? 'bg-emerald-500 text-emerald-950 shadow-lg shadow-emerald-500/20' : 'text-slate-500 hover:text-slate-300'}`}
                     >
-                        {activeSubTab === 'list' && <div className="absolute inset-0 bg-emerald-500 transition-all duration-500" />}
                         <span className="relative z-10 flex items-center justify-center gap-2">
-                            <Box size={14} /> Produtos
+                            <Box size={14} /> Ativos
                         </span>
                     </button>
                     <button
                         onClick={() => setActiveSubTab('movements')}
-                        className={`flex-1 xl:flex-none px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-500 relative overflow-hidden group ${activeSubTab === 'movements' ? 'text-emerald-950' : 'text-slate-500 hover:text-slate-300'}`}
+                        className={`flex-1 lg:flex-none px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-500 relative overflow-hidden group ${activeSubTab === 'movements' ? 'bg-emerald-500 text-emerald-950 shadow-lg shadow-emerald-500/20' : 'text-slate-500 hover:text-slate-300'}`}
                     >
-                        {activeSubTab === 'movements' && <div className="absolute inset-0 bg-emerald-500 transition-all duration-500" />}
                         <span className="relative z-10 flex items-center justify-center gap-2">
-                            <HistoryIcon size={14} /> Movimentações
+                            <HistoryIcon size={14} /> Log Movimentações
                         </span>
                     </button>
                 </div>
@@ -261,83 +260,60 @@ export const ProductsPage = () => {
             {activeSubTab === 'list' ? (
                 <>
                     <StockStats
-                        totalItems={totalItems}
-                        lowStockItems={lowStockItems}
-                        totalStockValue={totalStockValue}
+                        totalItems={stats.totalItems}
+                        lowStockItems={stats.lowStockItems}
+                        totalStockValue={stats.totalStockValue}
                         currency={settings.currency}
                     />
 
-                    {/* BARRA DE COMANDO */}
-                    <div className="bg-slate-900/40 p-6 rounded-3xl border border-slate-800/60 backdrop-blur-xl flex flex-col xl:flex-row justify-between items-center gap-6 shadow-xl">
-                        <div className="relative w-full xl:w-[500px] group">
-                            <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-emerald-500 transition-colors" size={20} />
+                    {/* ACTION PANEL */}
+                    <div className="flex flex-col lg:flex-row gap-4 items-stretch lg:items-center">
+                        <div className="flex-1 relative group">
+                            <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-emerald-500 transition-colors" size={20} />
                             <input
-                                placeholder="LOCALIZAR INSUMO OU LOTE..."
+                                placeholder="VARREDURA DE INVENTÁRIO (NOME/LOTE/LOCAL)..."
                                 value={searchTerm}
                                 onChange={e => setSearchTerm(e.target.value)}
                                 className="w-full bg-slate-950/80 border border-slate-800 rounded-2xl pl-16 pr-6 py-5 text-sm font-black text-white focus:border-emerald-500/50 outline-none transition-all shadow-inner tracking-widest uppercase italic"
                             />
                         </div>
 
-                        <div className="flex items-center gap-4 w-full xl:w-auto">
+                        <div className="flex gap-3">
                             <button
                                 onClick={() => setIsAdvancedFiltersOpen(true)}
-                                className={`px-6 py-5 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center gap-3 transition-all border ${Object.values(advancedFilters).some(v => Array.isArray(v) ? v.length > 0 : v !== '' && v !== null)
-                                    ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-400'
-                                    : 'bg-slate-950 border-slate-800 text-slate-500 hover:border-slate-700'
-                                    }`}
+                                className={`px-6 rounded-2xl border transition-all flex items-center gap-3 text-[10px] font-black uppercase tracking-widest ${Object.values(advancedFilters).some(v => Array.isArray(v) ? v.length > 0 : v !== '' && v !== null) ? 'bg-emerald-500/10 border-emerald-500 text-emerald-400' : 'bg-slate-950 border-slate-800 text-slate-500 hover:text-white'}`}
                             >
-                                <SlidersHorizontal size={18} />
-                                Filtros Avançados
+                                <SlidersHorizontal size={18} /> FILTROS
                             </button>
-
                             <button
                                 onClick={() => setIsBulkEntryOpen(true)}
-                                className="bg-slate-950 hover:bg-slate-900 text-slate-400 hover:text-white px-6 py-5 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center gap-3 transition-all border border-slate-800 hover:border-slate-700 active:scale-95"
+                                className="px-6 rounded-2xl bg-slate-950 border border-slate-800 text-slate-500 hover:text-white transition-all flex items-center gap-3 text-[10px] font-black uppercase tracking-widest"
                             >
-                                <Table size={18} />
-                                LOTE MASSIVO
+                                <Table size={18} /> LOTE
                             </button>
-
                             <button
-                                onClick={() => { setIsProductFormOpen(true); setEditingProductId(null); setActiveFormZone(1); setProductForm({ name: '', category: 'Fertilizantes', stock: '', unit: 'kg', unitWeight: '', minStock: '', price: '', location: '', batch: '', expirationDate: '' }); }}
-                                className="bg-emerald-500 hover:bg-emerald-400 text-emerald-950 px-8 py-5 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] flex items-center gap-3 transition-all shadow-xl shadow-emerald-500/20 active:scale-95 whitespace-nowrap"
+                                onClick={() => { resetProductForm(); setIsProductFormOpen(true); }}
+                                className="px-10 py-5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] transition-all shadow-xl shadow-emerald-500/20 active:scale-95 flex items-center gap-3 border-b-4 border-emerald-800"
                             >
-                                <Plus size={18} strokeWidth={3} />
-                                REGISTRAR INSUMO
+                                <Plus size={18} /> REGISTRAR
                             </button>
                         </div>
                     </div>
 
-                    {/* Filter Chips Area */}
+                    {/* Filter Chips */}
                     {Object.values(advancedFilters).some(v => Array.isArray(v) ? v.length > 0 : v !== '' && v !== null) && (
-                        <div className="flex flex-wrap gap-2 px-2 animate-fade-in">
+                        <div className="flex flex-wrap gap-2 animate-fade-in px-2">
                             {advancedFilters.categories.map(cat => (
-                                <span key={cat} className="px-3 py-1.5 bg-emerald-500/5 border border-emerald-500/20 rounded-lg text-[8px] font-black text-emerald-400 uppercase tracking-widest flex items-center gap-2">
+                                <span key={cat} className="px-3 py-1.5 bg-emerald-500/5 border border-emerald-500/20 rounded-lg text-[8px] font-black text-emerald-400 uppercase tracking-widest flex items-center gap-2 italic">
                                     {cat} <CloseIcon size={10} className="cursor-pointer hover:text-white" onClick={() => setAdvancedFilters({ ...advancedFilters, categories: advancedFilters.categories.filter(c => c !== cat) })} />
                                 </span>
                             ))}
-                            {advancedFilters.status.map(s => (
-                                <span key={s} className="px-3 py-1.5 bg-orange-500/5 border border-orange-500/20 rounded-lg text-[8px] font-black text-orange-400 uppercase tracking-widest flex items-center gap-2">
-                                    STATUS: {s.toUpperCase()} <CloseIcon size={10} className="cursor-pointer hover:text-white" onClick={() => setAdvancedFilters({ ...advancedFilters, status: advancedFilters.status.filter(st => st !== s) })} />
-                                </span>
-                            ))}
-                            {(advancedFilters.minPrice || advancedFilters.maxPrice) && (
-                                <span className="px-3 py-1.5 bg-blue-500/5 border border-blue-500/20 rounded-lg text-[8px] font-black text-blue-400 uppercase tracking-widest flex items-center gap-2">
-                                    FAIXA PREÇO <CloseIcon size={10} className="cursor-pointer hover:text-white" onClick={() => setAdvancedFilters({ ...advancedFilters, minPrice: '', maxPrice: '' })} />
-                                </span>
-                            )}
-                            {advancedFilters.expirationWindow && (
-                                <span className="px-3 py-1.5 bg-rose-500/5 border border-rose-500/20 rounded-lg text-[8px] font-black text-rose-400 uppercase tracking-widest flex items-center gap-2">
-                                    VENCE EM {advancedFilters.expirationWindow} DIAS <CloseIcon size={10} className="cursor-pointer hover:text-white" onClick={() => setAdvancedFilters({ ...advancedFilters, expirationWindow: null })} />
-                                </span>
-                            )}
-                            <button onClick={() => setAdvancedFilters(initialFilters)} className="px-3 py-1.5 text-[8px] font-black text-slate-500 uppercase tracking-widest hover:text-white transition-colors">Limpar Tudo</button>
+                            <button onClick={() => setAdvancedFilters(initialFilters)} className="text-[9px] font-black text-slate-600 hover:text-rose-500 uppercase tracking-widest transition-colors ml-2 italic underline underline-offset-4">Resetar Filtros</button>
                         </div>
                     )}
 
-                    {/* GRID DE AUDITORIA */}
-                    <div className="flex-1 min-h-[400px] grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-6 overflow-y-auto pr-2 custom-scrollbar pb-10">
+                    {/* PRODUCT GRID */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-6 md:gap-8 pb-20">
                         {filteredProducts.map(prod => (
                             <ProductCard
                                 key={prod.id}
@@ -350,12 +326,21 @@ export const ProductsPage = () => {
                                 getCategoryStyles={getCategoryStyles}
                             />
                         ))}
+                        {filteredProducts.length === 0 && (
+                            <div className="col-span-full py-40 flex flex-col items-center justify-center opacity-10 italic space-y-6 grayscale grayscale-0">
+                                <Package size={80} className="text-emerald-500/20" />
+                                <p className="text-xs font-black uppercase tracking-[0.5em] text-center">Nenhum insumo detectado na varredura.</p>
+                            </div>
+                        )}
                     </div>
                 </>
             ) : (
-                <MovementsLedger stockMovements={stockMovements} />
+                <div className="min-h-0 h-full flex flex-col">
+                    <MovementsLedger stockMovements={stockMovements} />
+                </div>
             )}
 
+            {/* MODALS */}
             <AuditForm
                 isOpen={isProductFormOpen}
                 editingProductId={editingProductId}
@@ -365,6 +350,7 @@ export const ProductsPage = () => {
                 setActiveFormZone={setActiveFormZone}
                 onClose={() => setIsProductFormOpen(false)}
                 onSubmit={handleProductSubmit}
+                onSaveAndContinue={() => handleProductSubmit(undefined, true)}
                 settings={settings}
             />
 

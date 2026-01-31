@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
-import { useStickyState } from '../hooks/useStickyState';
+
 import { supabase } from '../lib/supabase';
 import {
     Product, Transaction, Task, Property, Collaborator, Client, Supplier,
@@ -48,6 +48,7 @@ interface AppContextType {
     calculateNormalizedQuantity: (product: Product, qtyInput: number, inputUnit: string) => number;
     toggleFullScreen: () => void;
     isSyncing: boolean;
+    isLoaded: boolean;
 }
 
 const AppContext = createContext<AppContextType | null>(null);
@@ -103,7 +104,7 @@ const UNIT_CONFIG: any = {
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const { user, signOut } = useAuth();
 
-    const [settings, setSettings] = useStickyState<Settings>({
+    const [settings, setSettings] = useState<Settings>({
         farmName: 'Fazenda Santa Luzia',
         currency: 'R$',
         userName: user?.email?.split('@')[0] || 'Produtor',
@@ -111,7 +112,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         notifications: { email: true, push: true, sms: false },
         theme: 'dark',
         isSidebarOpen: true
-    }, 'agrogest_settings', user?.id);
+    });
 
     const [isSidebarOpen, setIsSidebarOpen] = useState(settings.isSidebarOpen ?? true);
     const [activeTab, setActiveTab] = useState('dashboard');
@@ -126,17 +127,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }, [settings.isSidebarOpen]);
 
     // --- ESTADOS GLOBAIS (DADOS) ---
-    const [tasks, setTasks] = useStickyState<Task[]>([], 'agrogest_tasks', user?.id);
-    const [products, setProducts] = useStickyState<Product[]>([], 'agrogest_products', user?.id);
-    const [stockMovements, setStockMovements] = useStickyState<StockMovement[]>([], 'agrogest_stock_movements', user?.id);
-    const [clients, setClients] = useStickyState<Client[]>([], 'agrogest_clients', user?.id);
-    const [suppliers, setSuppliers] = useStickyState<Supplier[]>([], 'agrogest_suppliers', user?.id);
-    const [collaborators, setCollaborators] = useStickyState<Collaborator[]>([], 'agrogest_collaborators', user?.id);
-    const [transactions, setTransactions] = useStickyState<Transaction[]>([], 'agrogest_transactions', user?.id);
-    const [properties, setProperties] = useStickyState<Property[]>([], 'agrogest_properties', user?.id);
-    const [plots, setPlots] = useStickyState<Plot[]>([], 'agrogest_plots', user?.id);
-    const [fieldApplications, setFieldApplications] = useStickyState<FieldApplication[]>([], 'agrogest_field_applications', user?.id);
-    const [activities, setActivities] = useStickyState<Activity[]>([], 'agrogest_activities', user?.id);
+    // --- ESTADOS GLOBAIS (DADOS) ---
+    const [tasks, setTasks] = useState<Task[]>([]);
+    const [products, setProducts] = useState<Product[]>([]);
+    const [stockMovements, setStockMovements] = useState<StockMovement[]>([]);
+    const [clients, setClients] = useState<Client[]>([]);
+    const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+    const [collaborators, setCollaborators] = useState<Collaborator[]>([]);
+    const [transactions, setTransactions] = useState<Transaction[]>([]);
+    const [properties, setProperties] = useState<Property[]>([]);
+    const [plots, setPlots] = useState<Plot[]>([]);
+    const [fieldApplications, setFieldApplications] = useState<FieldApplication[]>([]);
+    const [activities, setActivities] = useState<Activity[]>([]);
+
+    const [isLoaded, setIsLoaded] = useState(false);
 
     // --- CLOUD SYNC LOGIC ---
     const [isSyncing, setIsSyncing] = useState(false);
@@ -161,8 +165,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 if (data?.data) {
                     applyCloudData(data.data);
                 }
+                setIsLoaded(true);
             } catch (err) {
                 console.error('Failed to sync from cloud:', err);
+                setIsLoaded(true); // Evita loop de erro mas marca como "tentado"
             }
         };
 
@@ -210,7 +216,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     // Save data to Supabase when it changes (Debounced)
     useEffect(() => {
-        if (!user) return;
+        if (!user || !isLoaded) return; // Trava de segurança: só salva se já tiver carregado do Supabase
 
         const syncToCloud = async () => {
             setIsSyncing(true);
@@ -367,7 +373,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         activeTab, setActiveTab, currentDate, isFullScreen, setIsFullScreen,
         isSidebarOpen, setIsSidebarOpen, signOut,
         addActivity, handleStockAdjustment, resetSystem, calculateNormalizedQuantity, toggleFullScreen,
-        isSyncing
+        isSyncing, isLoaded
     };
 
     return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
