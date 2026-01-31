@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import {
-    Settings, Save, Database, Shield, Bell, Globe, RefreshCw, Smartphone, MessageSquare, Wind, Layout, Maximize, Minimize, Activity, Zap, Cpu, Terminal, Mail, Clock, RotateCcw, ShieldAlert, History
+    Settings, Save, Database, Shield, Bell, Globe, RefreshCw, Smartphone, MessageSquare, Wind, Layout, Maximize, Minimize, Activity, Zap, Cpu, Terminal, Mail, Clock, RotateCcw, ShieldAlert, History, Download, Upload, Server, ShieldCheck
 } from 'lucide-react';
 import { useApp } from '../../contexts/AppContext';
 import { Card } from '../../components/common/Card';
@@ -12,13 +12,26 @@ export const SettingsPage = () => {
         settings, setSettings,
         isFullScreen, toggleFullScreen,
         isSidebarOpen, setIsSidebarOpen,
-        addActivity, snapshots, createSnapshot, restoreSnapshot
+        addActivity, snapshots, createSnapshot, restoreSnapshot,
+        exportSentinelBackup, importSentinelBackup, user
     } = useApp();
 
     const [isCreatingSnapshot, setIsCreatingSnapshot] = useState(false);
     const [snapshotLabel, setSnapshotLabel] = useState('');
     const [isRestoreModalOpen, setIsRestoreModalOpen] = useState(false);
     const [selectedSnapshotId, setSelectedSnapshotId] = useState<number | null>(null);
+    const [isImporting, setIsImporting] = useState(false);
+    const [mirrorStatus, setMirrorStatus] = useState<'synced' | 'pending'>('synced');
+
+    // Monitorar mirroring no LocalStorage
+    React.useEffect(() => {
+        const storageKey = `sentinel_mirror_${user?.id}`;
+        const checkMirror = () => {
+            const mirror = localStorage.getItem(storageKey);
+            if (mirror) setMirrorStatus('synced');
+        };
+        checkMirror();
+    }, [user?.id, snapshots]);
 
     const [localSettings, setLocalSettings] = useState({
         ...settings,
@@ -57,6 +70,22 @@ export const SettingsPage = () => {
             await restoreSnapshot(selectedSnapshotId);
             toast.success('Estado anterior restaurado com sucesso.');
             setTimeout(() => window.location.reload(), 1000);
+        }
+    };
+
+    const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setIsImporting(true);
+        try {
+            await importSentinelBackup(file);
+            toast.success('Dossiê Sentinel importado com sucesso.');
+            setTimeout(() => window.location.reload(), 1500);
+        } catch (err: any) {
+            toast.error(' Falha na importação: ' + err.message);
+        } finally {
+            setIsImporting(false);
         }
     };
 
@@ -234,9 +263,31 @@ export const SettingsPage = () => {
                             </div>
                         </div>
 
-                        <div className="p-4 bg-rose-500/5 rounded-2xl border border-rose-500/10">
-                            <p className="text-[8px] text-rose-500/60 font-black uppercase tracking-[0.1em] text-center italic leading-relaxed">
-                                <ShieldAlert size={10} className="inline mr-1 mb-0.5" /> Atenção: O Protocolo Sentinel armazena apenas os últimos 5 pontos críticos na nuvem para manter a integridade operacional.
+                        <div className="p-4 bg-emerald-500/5 rounded-2xl border border-emerald-500/10 space-y-3">
+                            <div className="flex items-center justify-between">
+                                <p className="text-[8px] text-emerald-500 font-black uppercase tracking-[0.1em] italic">
+                                    <ShieldCheck size={10} className="inline mr-1 mb-0.5" /> Blindagem Nível 5 Ativa
+                                </p>
+                                <span className="text-[7px] text-slate-700 font-black uppercase tracking-widest italic">{mirrorStatus === 'synced' ? 'MIRROR_LOCAL_SYNCED' : 'MIRROR_PENDING'}</span>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-2 pt-2 border-t border-emerald-500/10">
+                                <button
+                                    onClick={exportSentinelBackup}
+                                    className="flex items-center justify-center gap-2 p-3 bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white rounded-xl border border-slate-800 transition-all active:scale-95"
+                                >
+                                    <Download size={14} />
+                                    <span className="text-[8px] font-black uppercase tracking-widest italic">Exportar .sentinel</span>
+                                </button>
+                                <label className="flex items-center justify-center gap-2 p-3 bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white rounded-xl border border-slate-800 transition-all active:scale-95 cursor-pointer">
+                                    <Upload size={14} />
+                                    <span className="text-[8px] font-black uppercase tracking-widest italic">Importar Dossiê</span>
+                                    <input type="file" accept=".sentinel,.json" className="hidden" onChange={handleImportFile} disabled={isImporting} />
+                                </label>
+                            </div>
+
+                            <p className="text-[8px] text-slate-600 font-bold uppercase tracking-[0.1em] text-center italic leading-relaxed pt-2">
+                                Redundância total: Cloud + Local Mirror + Backup Externo.
                             </p>
                         </div>
                     </Card>

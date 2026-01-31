@@ -52,6 +52,8 @@ interface AppContextType {
     snapshots: Snapshot[];
     createSnapshot: (label: string) => Promise<void>;
     restoreSnapshot: (snapshotId: number) => Promise<void>;
+    exportSentinelBackup: () => void;
+    importSentinelBackup: (file: File) => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | null>(null);
@@ -219,9 +221,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         };
     }, [user?.id]);
 
-    // Save data to Supabase when it changes (Debounced)
+    // Save data to Supabase when it changes (Debounced) + LocalStorage Mirroring
     useEffect(() => {
-        if (!user || !isLoaded) return; // Trava de segurança: só salva se já tiver carregado do Supabase
+        if (!user || !isLoaded) return;
 
         const syncToCloud = async () => {
             setIsSyncing(true);
@@ -231,6 +233,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                     collaborators, transactions, properties, plots,
                     fieldApplications, activities, settings, snapshots
                 };
+
+                // Mirroring: LocalStorage (Secondary Persistence)
+                const storageKey = `sentinel_mirror_${user.id}`;
+                localStorage.setItem(storageKey, JSON.stringify({
+                    data: fullData,
+                    timestamp: new Date().toISOString()
+                }));
 
                 const { error } = await supabase
                     .from('user_data')
@@ -242,13 +251,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
                 if (error) throw error;
             } catch (err) {
-                console.error('Failed to sync to cloud:', err);
+                console.error('Failed to sync to cloud/mirror:', err);
             } finally {
                 setIsSyncing(false);
             }
         };
 
-        const timeoutId = setTimeout(syncToCloud, 1000); // Faster sync (1s)
+        const timeoutId = setTimeout(syncToCloud, 1000);
         return () => clearTimeout(timeoutId);
     }, [
         user?.id, tasks, products, stockMovements, clients, suppliers,
@@ -382,21 +391,82 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const snapshot = snapshots.find(s => s.id === snapshotId);
         if (!snapshot) return;
 
+        // T-2.1: Auto-Rollback Shield
+        // Criar um ponto de restauração de emergência ANTES de sobrescrever
+        await createSnapshot(`ANTE_RESTAURACAO_${new Date().toLocaleTimeString()}`);
+
         const cloudData = snapshot.data;
-        if (cloudData.tasks) setTasks(cloudData.tasks);
-        if (cloudData.products) setProducts(cloudData.products);
-        if (cloudData.stockMovements) setStockMovements(cloudData.stockMovements);
-        if (cloudData.clients) setClients(cloudData.clients);
-        if (cloudData.suppliers) setSuppliers(cloudData.suppliers);
-        if (cloudData.collaborators) setCollaborators(cloudData.collaborators);
-        if (cloudData.transactions) setTransactions(cloudData.transactions);
-        if (cloudData.properties) setProperties(cloudData.properties);
-        if (cloudData.plots) setPlots(cloudData.plots);
-        if (cloudData.fieldApplications) setFieldApplications(cloudData.fieldApplications);
-        if (cloudData.activities) setActivities(cloudData.activities);
-        if (cloudData.settings) setSettings(cloudData.settings);
+        applyDataToState(cloudData);
 
         addActivity('Restauração de Sistema Concluída', snapshot.label, 'neutral');
+    };
+
+    const applyDataToState = (data: any) => {
+        if (data.tasks) setTasks(data.tasks);
+        if (data.products) setProducts(data.products);
+        if (data.stockMovements) setStockMovements(data.stockMovements);
+        if (data.clients) setClients(data.clients);
+        if (data.suppliers) setSuppliers(data.suppliers);
+        if (data.collaborators) setCollaborators(data.collaborators);
+        if (data.transactions) setTransactions(data.transactions);
+        if (data.properties) setProperties(data.properties);
+        if (data.plots) setPlots(data.plots);
+        if (data.fieldApplications) setFieldApplications(data.fieldApplications);
+        if (data.activities) setActivities(data.activities);
+        if (data.settings) setSettings(data.settings);
+    };
+
+    const exportSentinelBackup = () => {
+        const fullDataSnapshot = {
+            tasks, products, stockMovements, clients, suppliers,
+            collaborators, transactions, properties, plots,
+            fieldApplications, activities, settings, snapshots,
+            version: '5.0',
+            exportedAt: new Date().toISOString(),
+            farmName: settings.farmName
+        };
+
+        const blob = new Blob([JSON.stringify(fullDataSnapshot, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `sentinel_dossier_${settings.farmName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.sentinel`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+
+        addActivity('Dossiê Sentinel Exportado', 'Backup Externo Gerado', 'neutral');
+    };
+
+    const importSentinelBackup = async (file: File) => {
+        return new Promise<void>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const content = e.target?.result as string;
+                    const importedData = JSON.parse(content);
+
+                    // Validação básica
+                    if (!importedData.farmName && !importedData.products) {
+                        throw new Error('Arquivo .sentinel inválido ou corrompido.');
+                    }
+
+                    // Backup preventivo antes de importar
+                    await createSnapshot(`ANTE_IMPORTACAO_${new Date().toLocaleTimeString()}`);
+
+                    applyDataToState(importedData);
+                    if (importedData.snapshots) setSnapshots(importedData.snapshots);
+
+                    addActivity('Dossiê Sentinel Importado', 'Integridade Restaurada via Arquivo', 'neutral');
+                    resolve();
+                } catch (err) {
+                    reject(err);
+                }
+            };
+            reader.onerror = () => reject(new Error('Falha na leitura do arquivo.'));
+            reader.readAsText(file);
+        });
     };
 
     const resetSystem = () => {
@@ -419,7 +489,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         activeTab, setActiveTab, currentDate, isFullScreen, setIsFullScreen,
         isSidebarOpen, setIsSidebarOpen, signOut,
         addActivity, handleStockAdjustment, resetSystem, calculateNormalizedQuantity, toggleFullScreen,
-        isSyncing, isLoaded, snapshots, createSnapshot, restoreSnapshot
+        isSyncing, isLoaded, snapshots, createSnapshot, restoreSnapshot,
+        exportSentinelBackup, importSentinelBackup
     };
 
     return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
