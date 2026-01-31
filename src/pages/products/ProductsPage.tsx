@@ -7,6 +7,7 @@ import { useApp } from '../../contexts/AppContext';
 import { Card } from '../../components/common/Card';
 import { formatNumber, parseValue, maskNumber, maskValue } from '../../utils/format';
 import { Product } from '../../types';
+import { TechnicalConfirmModal } from '../../components/ui/TechnicalConfirmModal';
 
 // Modular Components
 import { ProductCard } from './components/ProductCard';
@@ -36,6 +37,8 @@ export const ProductsPage = () => {
     const [historyProduct, setHistoryProduct] = useState<Product | null>(null);
     const [isHistoryDrawerOpen, setIsHistoryDrawerOpen] = useState(false);
     const [isBulkEntryOpen, setIsBulkEntryOpen] = useState(false);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [productIdToDelete, setProductIdToDelete] = useState<number | null>(null);
 
     const initialFilters: FilterCriteria = {
         categories: [],
@@ -175,12 +178,19 @@ export const ProductsPage = () => {
     };
 
     const deleteProduct = (id: number) => {
-        if (confirm('Deseja realmente remover este item do inventário? Esta ação é irreversível.')) {
-            const product = products.find(p => p.id === id);
+        setProductIdToDelete(id);
+        setIsDeleteModalOpen(true);
+    };
+
+    const confirmDeleteProduct = () => {
+        if (productIdToDelete) {
+            const product = products.find(p => p.id === productIdToDelete);
             if (product) {
                 addActivity('Removeu do inventário', product.name, 'neutral');
             }
-            setProducts(products.filter(p => p.id !== id));
+            setProducts(products.filter(p => p.id !== productIdToDelete));
+            setProductIdToDelete(null);
+            setIsDeleteModalOpen(false);
         }
     };
 
@@ -389,6 +399,15 @@ export const ProductsPage = () => {
                 onSubmit={handleBulkSubmit}
                 settings={settings}
                 existingProducts={products}
+            />
+
+            <TechnicalConfirmModal
+                isOpen={isDeleteModalOpen}
+                onClose={() => setIsDeleteModalOpen(false)}
+                onConfirm={confirmDeleteProduct}
+                title="Desativação Permanentemente de Insumo"
+                description={`Você está prestes a remover o registro técnico deste item. Isso restringe o acesso ao histórico rápido e remove o item da contagem de balanço ativa.`}
+                criticalInfo="Embora o log de movimentações seja preservado, o produto não poderá mais ser utilizado em novas aplicações de campo até ser recadastrado."
             />
         </div>
     );

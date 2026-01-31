@@ -13,6 +13,7 @@ import { PropertyAttachments } from '../../components/properties/PropertyAttachm
 import { supabase } from '../../lib/supabase';
 import { toast } from 'sonner';
 import { Card } from '../../components/common/Card';
+import { TechnicalConfirmModal } from '../../components/ui/TechnicalConfirmModal';
 
 export const PropertiesPage = () => {
     const {
@@ -54,6 +55,9 @@ export const PropertiesPage = () => {
     }>({
         name: '', area: '', crop: '', status: 'active'
     });
+
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [deleteConfig, setDeleteConfig] = useState<{ type: 'property' | 'plot', id: number | null }>({ type: 'property', id: null });
 
     const stats = useMemo(() => {
         const total = properties.reduce((acc, p) => acc + (p.totalArea || 0), 0);
@@ -135,21 +139,6 @@ export const PropertiesPage = () => {
         setAttachmentsToDelete([]);
     };
 
-    const deleteProperty = async (id: number) => {
-        const prop = properties.find((p: any) => p.id === id);
-        if (prop && window.confirm(`Deseja desativar permanentemente o registro de ${prop.name}?`)) {
-            if (prop.attachments?.length) {
-                const paths = prop.attachments.map((a: any) => a.url.split('property-attachments/')[1]).filter(Boolean);
-                if (paths.length) await supabase.storage.from('property-attachments').remove(paths);
-            }
-            setProperties(properties.filter((p: any) => p.id !== id));
-            setPlots(plots.filter((p: any) => p.propertyId !== id));
-            addActivity('Removeu propriedade do sistema', prop.name, 'neutral');
-            toast.success('Registro removido com sucesso.');
-            if (selectedPropertyId === id) setSelectedPropertyId(null);
-        }
-    };
-
     const handlePlotSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         const data: any = {
@@ -170,12 +159,42 @@ export const PropertiesPage = () => {
         setPlotForm({ name: '', area: '', crop: '', status: 'active' });
     };
 
+    const deleteProperty = async (id: number) => {
+        setDeleteConfig({ type: 'property', id });
+        setIsDeleteModalOpen(true);
+    };
+
     const deletePlot = (id: number) => {
-        const plot = plots.find((p: any) => p.id === id);
-        if (plot && window.confirm(`Remover permanentemente o talhão ${plot.name}?`)) {
-            setPlots(plots.filter((p: any) => p.id !== id));
-            addActivity('Removeu talhão da propriedade', plot.name, 'neutral');
+        setDeleteConfig({ type: 'plot', id });
+        setIsDeleteModalOpen(true);
+    };
+
+    const confirmDelete = async () => {
+        const { type, id } = deleteConfig;
+        if (!id) return;
+
+        if (type === 'property') {
+            const prop = properties.find((p: any) => p.id === id);
+            if (prop) {
+                if (prop.attachments?.length) {
+                    const paths = prop.attachments.map((a: any) => a.url.split('property-attachments/')[1]).filter(Boolean);
+                    if (paths.length) await supabase.storage.from('property-attachments').remove(paths);
+                }
+                setProperties(properties.filter((p: any) => p.id !== id));
+                setPlots(plots.filter((p: any) => p.propertyId !== id));
+                addActivity('Removeu propriedade do sistema', prop.name, 'neutral');
+                toast.success('Registro removido com sucesso.');
+                if (selectedPropertyId === id) setSelectedPropertyId(null);
+            }
+        } else {
+            const plot = plots.find((p: any) => p.id === id);
+            if (plot) {
+                setPlots(plots.filter((p: any) => p.id !== id));
+                addActivity('Removeu talhão da propriedade', plot.name, 'neutral');
+                toast.success('Talhão removido do registro.');
+            }
         }
+        setIsDeleteModalOpen(false);
     };
 
     const selectedProperty = useMemo(() => properties.find(p => p.id === selectedPropertyId), [properties, selectedPropertyId]);
@@ -586,6 +605,19 @@ export const PropertiesPage = () => {
                     </Card>
                 </div>
             )}
+
+            <TechnicalConfirmModal
+                isOpen={isDeleteModalOpen}
+                onClose={() => setIsDeleteModalOpen(false)}
+                onConfirm={confirmDelete}
+                title={deleteConfig.type === 'property' ? "Desativação de Matriz Territorial" : "Exclusão de Subdivisão (Talhão)"}
+                description={deleteConfig.type === 'property'
+                    ? "Você está prestes a remover permanentemente esta propriedade e TODOS os seus talhões associados do sistema."
+                    : "Você está prestes a remover os dados técnicos e georeferenciados deste talhão."}
+                criticalInfo={deleteConfig.type === 'property'
+                    ? "Esta ação excluirá anexos na nuvem e dados históricos de produção vinculados a esta terra. Não há restauração parcial."
+                    : "Certifique-se de que não há aplicações de campo pendentes ou estoque vinculado a este talhão antes de prosseguir."}
+            />
         </div>
     );
 };

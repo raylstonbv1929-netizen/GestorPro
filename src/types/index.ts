@@ -170,3 +170,10 @@ export interface Settings {
     theme: 'dark' | 'light';
     isSidebarOpen: boolean;
 }
+
+export interface Snapshot {
+    id: number;
+    date: string;
+    label: string;
+    data: any;
+}

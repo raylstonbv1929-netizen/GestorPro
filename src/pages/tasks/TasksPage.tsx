@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { useApp } from '../../contexts/AppContext';
 import { Card } from '../../components/common/Card';
+import { TechnicalConfirmModal } from '../../components/ui/TechnicalConfirmModal';
 
 export const TasksPage = () => {
     const { tasks, setTasks, properties, addActivity } = useApp();
@@ -16,6 +17,8 @@ export const TasksPage = () => {
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingId, setEditingId] = useState<number | null>(null);
     const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [taskIdToDelete, setTaskIdToDelete] = useState<number | null>(null);
 
     const [formData, setFormData] = useState<{
         text: string;
@@ -75,15 +78,24 @@ export const TasksPage = () => {
         const task = tasks.find((t: any) => t.id === id);
         if (task) {
             setTasks(tasks.map((t: any) => t.id === id ? { ...t, done: !t.done } : t));
-            addActivity(task.done ? 'Missão suspensa/reaberta' : 'Missão cumprida', task.text, task.done ? 'neutral' : 'success');
+            addActivity(task.done ? 'Missão suspensa/reaberta' : 'Missão cumprida', task.text, 'neutral');
         }
     };
 
     const deleteTask = (id: number) => {
-        const task = tasks.find((t: any) => t.id === id);
-        if (task && window.confirm(`Desativar permanentemente o registro de missão: "${task.text}"?`)) {
-            setTasks(tasks.filter((t: any) => t.id !== id));
-            addActivity('Removeu missão do log tático', task.text, 'neutral');
+        setTaskIdToDelete(id);
+        setIsDeleteModalOpen(true);
+    };
+
+    const confirmDeleteTask = () => {
+        if (taskIdToDelete) {
+            const task = tasks.find((t: any) => t.id === taskIdToDelete);
+            if (task) {
+                setTasks(tasks.filter((t: any) => t.id !== taskIdToDelete));
+                addActivity('Removeu missão do log tático', task.text, 'neutral');
+            }
+            setTaskIdToDelete(null);
+            setIsDeleteModalOpen(false);
         }
     };
 
@@ -408,6 +420,15 @@ export const TasksPage = () => {
                     </Card>
                 </div>
             )}
+
+            <TechnicalConfirmModal
+                isOpen={isDeleteModalOpen}
+                onClose={() => setIsDeleteModalOpen(false)}
+                onConfirm={confirmDeleteTask}
+                title="Desativação de Protocolo de Missão"
+                description="Você está prestes a remover permanentemente este registro do log tático. Isso eliminará qualquer rastro operacional desta missão no dashboard."
+                criticalInfo="Missões deletadas não podem ser recuperadas via interface comum, apenas através de restauração total do snapshot do sistema."
+            />
         </div>
     );
 };

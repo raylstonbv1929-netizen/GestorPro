@@ -4,7 +4,7 @@ import { useAuth } from './AuthContext';
 import { supabase } from '../lib/supabase';
 import {
     Product, Transaction, Task, Property, Collaborator, Client, Supplier,
-    Activity, Plot, FieldApplication, StockMovement, Settings
+    Activity, Plot, FieldApplication, StockMovement, Settings, Snapshot
 } from '../types';
 import { parseValue } from '../utils/format';
 
@@ -49,6 +49,9 @@ interface AppContextType {
     toggleFullScreen: () => void;
     isSyncing: boolean;
     isLoaded: boolean;
+    snapshots: Snapshot[];
+    createSnapshot: (label: string) => Promise<void>;
+    restoreSnapshot: (snapshotId: number) => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | null>(null);
@@ -139,6 +142,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const [plots, setPlots] = useState<Plot[]>([]);
     const [fieldApplications, setFieldApplications] = useState<FieldApplication[]>([]);
     const [activities, setActivities] = useState<Activity[]>([]);
+    const [snapshots, setSnapshots] = useState<Snapshot[]>([]);
 
     const [isLoaded, setIsLoaded] = useState(false);
 
@@ -185,6 +189,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             if (cloudData.fieldApplications) setFieldApplications(cloudData.fieldApplications);
             if (cloudData.activities) setActivities(cloudData.activities);
             if (cloudData.settings) setSettings(cloudData.settings);
+            if (cloudData.snapshots) setSnapshots(cloudData.snapshots);
         };
 
         loadCloudData();
@@ -224,7 +229,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 const fullData = {
                     tasks, products, stockMovements, clients, suppliers,
                     collaborators, transactions, properties, plots,
-                    fieldApplications, activities, settings
+                    fieldApplications, activities, settings, snapshots
                 };
 
                 const { error } = await supabase
@@ -248,7 +253,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }, [
         user?.id, tasks, products, stockMovements, clients, suppliers,
         collaborators, transactions, properties, plots,
-        fieldApplications, activities, settings
+        fieldApplications, activities, settings, snapshots
     ]);
 
     const addActivity = (action: string, target: string, type: 'income' | 'expense' | 'neutral' = 'neutral') => {
@@ -353,6 +358,47 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }
     };
 
+    const createSnapshot = async (label: string) => {
+        const fullDataSnapshot = {
+            tasks, products, stockMovements, clients, suppliers,
+            collaborators, transactions, properties, plots,
+            fieldApplications, activities, settings
+        };
+
+        const newSnapshot: Snapshot = {
+            id: Date.now(),
+            date: new Date().toISOString(),
+            label,
+            data: fullDataSnapshot
+        };
+
+        // Manter apenas os últimos 5 snapshots para evitar bloat no JSONB
+        const updatedSnapshots = [newSnapshot, ...snapshots].slice(0, 5);
+        setSnapshots(updatedSnapshots);
+        addActivity('Ponto de Restauração Criado', label, 'neutral');
+    };
+
+    const restoreSnapshot = async (snapshotId: number) => {
+        const snapshot = snapshots.find(s => s.id === snapshotId);
+        if (!snapshot) return;
+
+        const cloudData = snapshot.data;
+        if (cloudData.tasks) setTasks(cloudData.tasks);
+        if (cloudData.products) setProducts(cloudData.products);
+        if (cloudData.stockMovements) setStockMovements(cloudData.stockMovements);
+        if (cloudData.clients) setClients(cloudData.clients);
+        if (cloudData.suppliers) setSuppliers(cloudData.suppliers);
+        if (cloudData.collaborators) setCollaborators(cloudData.collaborators);
+        if (cloudData.transactions) setTransactions(cloudData.transactions);
+        if (cloudData.properties) setProperties(cloudData.properties);
+        if (cloudData.plots) setPlots(cloudData.plots);
+        if (cloudData.fieldApplications) setFieldApplications(cloudData.fieldApplications);
+        if (cloudData.activities) setActivities(cloudData.activities);
+        if (cloudData.settings) setSettings(cloudData.settings);
+
+        addActivity('Restauração de Sistema Concluída', snapshot.label, 'neutral');
+    };
+
     const resetSystem = () => {
         const userPrefix = `agrogest_`;
         const userSuffix = `_${user?.id}`;
@@ -373,7 +419,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         activeTab, setActiveTab, currentDate, isFullScreen, setIsFullScreen,
         isSidebarOpen, setIsSidebarOpen, signOut,
         addActivity, handleStockAdjustment, resetSystem, calculateNormalizedQuantity, toggleFullScreen,
-        isSyncing, isLoaded
+        isSyncing, isLoaded, snapshots, createSnapshot, restoreSnapshot
     };
 
     return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
