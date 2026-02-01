@@ -1,0 +1,48 @@
+workflow-automation : automação de fluxos de trabalho
+workflow-patterns : padrões reutilizáveis de workflows
+workflow-orchestration-patterns : orquestração de fluxos complexos
+
+n8n-node-configuration : configuração de nós no n8n
+n8n-code-python : uso de código Python no n8n
+n8n-mcp-tools-expert : integração de ferramentas MCP no n8n
+
+zapier-make-patterns : padrões de automação com Zapier e Make
+trigger-dev : automações baseadas em eventos
+
+automate-whatsapp : automação de atendimento e mensagens no WhatsApp
+observe-whatsapp : monitoramento e análise de interações no WhatsApp
+telegram-bot-builder : criação de bots para Telegram
+discord-bot-architect : arquitetura de bots para Discord
+slack-bot-builder : criação de bots para Slack
+
+browser-automation : automação de navegador
+computer-use-agents : agentes que operam interfaces gráficas
+screenshots : automação de capturas de tela
+
+firecrawl-scraper : scraping de sites
+exa-search : busca avançada de dados
+tavily-web : pesquisa automatizada na web
+
+hubspot-integration : integração com HubSpot
+salesforce-development : desenvolvimento para Salesforce
+plaid-fintech : integração financeira com Plaid
+twilio-communications : comunicações via Twilio
+
+payment-integration : integração de pagamentos
+billing-automation : automação de faturamento
+
+file-organizer : organização automática de arquivos
+environment-setup-guide : guias de setup de ambiente
+planning-with-files : planejamento baseado em arquivos
+
+reference-builder : criação de referências e catálogos
+pdf-official : geração de PDFs
+docx-official : geração de documentos DOCX
+pptx-official : geração de apresentações PPTX
+xlsx-official : geração de planilhas XLSX
+
+obsidian-clipper-template-creator : templates para Obsidian
+notion-template-business : templates de negócios para Notion
+
+daily-news-report : geração automática de relatórios diários
+last30days : relatórios de atividade dos últimos 30 dias

@@ -6,9 +6,10 @@ import { StockMovement } from '../../../types';
 
 interface MovementsLedgerProps {
     stockMovements: StockMovement[];
+    products: any[];
 }
 
-export const MovementsLedger: React.FC<MovementsLedgerProps> = ({ stockMovements }) => {
+export const MovementsLedger: React.FC<MovementsLedgerProps> = ({ stockMovements, products }) => {
     return (
         <Card className="flex-1 overflow-hidden flex flex-col p-0 border-slate-800/60 rounded-[2.5rem] bg-slate-900/40 backdrop-blur-2xl shadow-3xl">
             <div className="p-10 border-b border-slate-800/80 flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-slate-950/40">
@@ -75,6 +76,17 @@ export const MovementsLedger: React.FC<MovementsLedgerProps> = ({ stockMovements
                                             {mov.type === 'in' ? '+' : '-'}{formatNumber(mov.quantity)}
                                             <span className="ml-2 text-[9px] text-slate-500 uppercase font-bold tracking-tighter">{mov.quantityUnit}</span>
                                         </div>
+                                        {(() => {
+                                            const p = products.find(prod => prod.id === mov.productId);
+                                            if (p && p.capacityUnit && p.unitWeight > 1) {
+                                                return (
+                                                    <div className="text-[9px] text-slate-500 font-black uppercase tracking-tighter mt-1 italic">
+                                                        ≈ {formatNumber(mov.quantity * p.unitWeight)} {p.capacityUnit.toUpperCase()}
+                                                    </div>
+                                                );
+                                            }
+                                            return null;
+                                        })()}
                                     </td>
                                     <td className="px-10 py-6">
                                         <div className="text-[10px] text-slate-400 font-bold max-w-[300px] leading-relaxed italic">{mov.reason || 'S/ JUSTIFICATIVA TÉCNICA'}</div>

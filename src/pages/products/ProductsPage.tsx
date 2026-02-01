@@ -34,6 +34,7 @@ export const ProductsPage = () => {
     const [editingProductId, setEditingProductId] = useState<number | null>(null);
     const [activeFormZone, setActiveFormZone] = useState(1);
     const [quickAdjustProduct, setQuickAdjustProduct] = useState<Product | null>(null);
+    const [quickAdjustType, setQuickAdjustType] = useState<'in' | 'out'>('in');
     const [historyProduct, setHistoryProduct] = useState<Product | null>(null);
     const [isHistoryDrawerOpen, setIsHistoryDrawerOpen] = useState(false);
     const [isBulkEntryOpen, setIsBulkEntryOpen] = useState(false);
@@ -54,6 +55,7 @@ export const ProductsPage = () => {
 
     const [productForm, setProductForm] = useState({
         name: '', category: 'Fertilizantes', stock: '', unit: 'kg',
+        capacityUnit: '',
         unitWeight: '', minStock: '', price: '', location: '', batch: '', expirationDate: ''
     });
 
@@ -153,7 +155,7 @@ export const ProductsPage = () => {
     const resetProductForm = () => {
         setEditingProductId(null);
         setActiveFormZone(1);
-        setProductForm({ name: '', category: 'Fertilizantes', stock: '', unit: 'kg', unitWeight: '', minStock: '', price: '', location: '', batch: '', expirationDate: '' });
+        setProductForm({ name: '', category: 'Fertilizantes', stock: '', unit: 'kg', capacityUnit: '', unitWeight: '', minStock: '', price: '', location: '', batch: '', expirationDate: '' });
     };
 
     const handleBulkSubmit = (newProducts: any[]) => {
@@ -201,12 +203,32 @@ export const ProductsPage = () => {
             category: product.category,
             stock: maskNumber(product.stock),
             unit: product.unit,
+            capacityUnit: product.capacityUnit || '',
             unitWeight: maskNumber(product.unitWeight || 1),
             minStock: maskNumber(product.minStock),
             price: maskValue(product.price),
             location: product.location || '',
             batch: product.batch || '',
             expirationDate: product.expirationDate || ''
+        });
+        setIsProductFormOpen(true);
+        setActiveFormZone(1);
+    };
+
+    const handleDuplicate = (product: Product) => {
+        setEditingProductId(null); // It's a new product
+        setProductForm({
+            name: `${product.name} (CÓPIA)`,
+            category: product.category,
+            stock: '', // Usually reset stock for new entry, but can keep others
+            unit: product.unit,
+            capacityUnit: product.capacityUnit || '',
+            unitWeight: maskNumber(product.unitWeight || 1),
+            minStock: maskNumber(product.minStock),
+            price: maskValue(product.price),
+            location: product.location || '',
+            batch: '',
+            expirationDate: ''
         });
         setIsProductFormOpen(true);
         setActiveFormZone(1);
@@ -331,8 +353,15 @@ export const ProductsPage = () => {
                                 settings={settings}
                                 onEdit={openEdit}
                                 onDelete={deleteProduct}
-                                onAdjustStock={(id) => setQuickAdjustProduct(products.find(p => p.id === id) || null)}
+                                onAdjustStock={(id, amount) => {
+                                    const p = products.find(prod => prod.id === id);
+                                    if (p) {
+                                        setQuickAdjustProduct(p);
+                                        setQuickAdjustType(amount > 0 ? 'in' : 'out');
+                                    }
+                                }}
                                 onViewHistory={(p) => { setHistoryProduct(p); setIsHistoryDrawerOpen(true); }}
+                                onDuplicate={handleDuplicate}
                                 getCategoryStyles={getCategoryStyles}
                             />
                         ))}
@@ -346,7 +375,7 @@ export const ProductsPage = () => {
                 </>
             ) : (
                 <div className="min-h-0 h-full flex flex-col">
-                    <MovementsLedger stockMovements={stockMovements} />
+                    <MovementsLedger stockMovements={stockMovements} products={products} />
                 </div>
             )}
 
@@ -367,6 +396,7 @@ export const ProductsPage = () => {
             {quickAdjustProduct && (
                 <QuickAdjustPopover
                     product={quickAdjustProduct}
+                    initialType={quickAdjustType}
                     onClose={() => setQuickAdjustProduct(null)}
                     onAdjust={handleQuickAdjust}
                     collaborators={collaborators}

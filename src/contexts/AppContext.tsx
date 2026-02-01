@@ -281,14 +281,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const baseUnit = product.unit;
         const unit = inputUnit || baseUnit;
         const weight = parseFloat(product.unitWeight as any) || 1;
+        const capacityUnit = product.capacityUnit || '';
 
         const getVal = (u: string) => {
             if (!u) return 1;
             const normalizedU = u.trim();
+
+            // Priority 1: Check if it's the explicit capacity unit of this product
+            if (capacityUnit && normalizedU.toLowerCase() === capacityUnit.toLowerCase()) return 1;
+
+            // Priority 2: Check global config
             const config = UNIT_CONFIG[normalizedU] || UNIT_CONFIG[normalizedU.toLowerCase()] || UNIT_CONFIG[normalizedU.toUpperCase()];
 
             if (!config) {
-                if (normalizedU === baseUnit) return weight;
+                // Priority 3: Check if it's the base unit (usually sc, bag, etc)
+                if (normalizedU === baseUnit || normalizedU.toLowerCase() === baseUnit.toLowerCase()) return weight;
                 return 1;
             }
 
@@ -296,9 +303,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         };
 
         if (unit === baseUnit) return qtyInput;
+
         const inputInStandard = qtyInput * getVal(unit);
-        const normalizedQty = inputInStandard / getVal(baseUnit);
-        return normalizedQty;
+        const baseVal = getVal(baseUnit);
+
+        if (baseVal === 0) return qtyInput; // Safety
+
+        const normalizedQty = inputInStandard / baseVal;
+
+        // Anti-Floating Point Tail (Round to 8 decimal places)
+        return Math.round(normalizedQty * 100000000) / 100000000;
     };
 
     const handleStockAdjustment = ({ productId, type, quantity, reason, unit = null, batch = '', cost = 0, updatePrice = false, date = null, customUser = null, appId = null }: any) => {
@@ -312,10 +326,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
         const normalizedQty = calculateNormalizedQuantity(product, qtyInput, unit);
         const currentStock = Number(product.stock);
-        const newStock = type === 'in' ? currentStock + normalizedQty : currentStock - normalizedQty;
+        let newStock = type === 'in' ? currentStock + normalizedQty : currentStock - normalizedQty;
+
+        // Anti-Floating Point Tail
+        newStock = Math.round(newStock * 100000000) / 100000000;
 
         if (type === 'out' && newStock < 0) {
-            return;
+            // Allow small negative values due to precision, but cap at 0 if it's practically zero
+            if (newStock > -0.00001) newStock = 0;
+            else return; // Real negative stock blocked
         }
 
         let newStatus: 'ok' | 'low' | 'critical' = 'ok';

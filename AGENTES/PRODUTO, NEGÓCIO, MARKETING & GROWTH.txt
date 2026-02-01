@@ -1,0 +1,54 @@
+product-manager-toolkit : ferramentas e práticas para gestão de produtos digitais
+ai-product : criação de produtos baseados em IA
+ai-wrapper-product : produtos que encapsulam modelos de IA
+app-builder : construção rápida de aplicações
+micro-saas-launcher : criação e lançamento de micro-SaaS
+
+business-analyst : análise de requisitos de negócio
+startup-analyst : análise de startups
+startup-business-analyst-business-case : construção de business case
+startup-business-analyst-market-opportunity : análise de oportunidade de mercado
+startup-business-analyst-financial-projections : projeções financeiras
+startup-financial-modeling : modelagem financeira para startups
+
+pricing-strategy : definição de estratégias de preço
+market-sizing-analysis : dimensionamento de mercado
+competitive-landscape : análise de concorrência
+competitor-alternatives : estudo de alternativas do mercado
+
+marketing-ideas : geração de ideias de marketing
+marketing-psychology : psicologia aplicada ao marketing
+content-marketer : marketing de conteúdo
+content-creator : criação de conteúdo
+copywriting : escrita persuasiva
+beautiful-prose : escrita refinada para comunicação
+writing-skills : habilidades gerais de escrita
+
+seo-fundamentals : fundamentos de SEO
+seo-audit : auditoria de SEO
+seo-authority-builder : construção de autoridade SEO
+seo-content-writer : escrita de conteúdo SEO
+seo-content-planner : planejamento de conteúdo SEO
+seo-content-auditor : auditoria de conteúdo
+seo-content-refresher : atualização de conteúdo antigo
+seo-keyword-strategist : estratégia de palavras-chave
+seo-structure-architect : estruturação de sites para SEO
+seo-meta-optimizer : otimização de metas
+seo-snippet-hunter : otimização de rich snippets
+seo-cannibalization-detector : detecção de canibalização SEO
+
+programmatic-seo : SEO programático
+viral-generator-builder : criação de conteúdos virais
+social-content : conteúdo para redes sociais
+
+paid-ads : anúncios pagos
+launch-strategy : estratégia de lançamento
+growth-experiments : experimentos de crescimento
+
+sales-automator : automação de vendas
+email-sequence : sequências de e-mail
+email-systems : sistemas de e-mail
+crm-integration : integração com CRM
+
+customer-support : suporte ao cliente
+customer-success : sucesso do cliente

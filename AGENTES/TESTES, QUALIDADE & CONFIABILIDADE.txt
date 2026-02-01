@@ -1,0 +1,42 @@
+test-driven-development : desenvolvimento guiado por testes (TDD)
+tdd-workflow : fluxo completo do TDD
+tdd-workflows-tdd-red : escrita de testes que falham
+tdd-workflows-tdd-green : implementação mínima para passar nos testes
+tdd-workflows-tdd-refactor : refatoração após testes passarem
+tdd-orchestrator : coordenação de fluxos TDD
+
+unit-testing-test-generate : geração de testes unitários
+e2e-testing-patterns : padrões para testes end-to-end
+testing-patterns : padrões gerais de testes
+test-automator : automação de testes
+test-fixing : correção de testes quebrados
+
+performance-testing-review-ai-review : revisão de testes de performance com IA
+performance-testing-review-multi-agent-review : revisão de performance com múltiplos agentes
+
+code-review-ai-ai-review : revisão de código com IA
+code-review-checklist : checklist de code review
+code-review-excellence : excelência em revisão de código
+code-reviewer : papel e responsabilidades do revisor
+receiving-code-review : como receber feedback de code review
+requesting-code-review : como solicitar code review
+fix-review : correção após review
+
+verification-before-completion : verificação antes da entrega final
+clarity-gate : gate de clareza e qualidade
+lint-and-validate : lint e validação automática
+shellcheck-configuration : configuração do ShellCheck
+
+performance-engineer : engenharia de performance
+performance-profiling : análise de gargalos
+application-performance-performance-optimization : otimização de performance de aplicações
+
+postmortem-writing : escrita de pós-mortem
+incident-responder : resposta a incidentes
+incident-response-incident-response : gestão de incidentes
+incident-response-smart-fix : correção inteligente de incidentes
+incident-runbook-templates : runbooks para incidentes
+on-call-handoff-patterns : passagem de plantão técnico
+
+reliability-engineering : práticas de confiabilidade (SRE)
+slo-implementation : implementação de SLOs

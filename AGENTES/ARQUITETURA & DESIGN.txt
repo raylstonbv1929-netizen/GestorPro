@@ -1,0 +1,58 @@
+software-architecture : princípios e estruturas para projetar sistemas escaláveis e sustentáveis
+architecture : fundamentos de arquitetura de software
+architecture-patterns : padrões arquiteturais como layered, hexagonal e clean
+architect-review : revisão técnica de arquiteturas propostas
+senior-architect : visão estratégica para decisões técnicas de alto impacto
+
+c4-architecture-c4-architecture : modelo C4 para documentação de arquitetura
+c4-context : visão de contexto do sistema
+c4-container : visão de containers e serviços
+c4-component : detalhamento de componentes internos
+c4-code : visão de código e implementação
+
+architecture-decision-records : registro de decisões arquiteturais (ADR)
+design-orchestration : coordenação de múltiplos componentes e serviços
+context-driven-development : desenvolvimento guiado por contexto
+context-fundamentals : fundamentos de gerenciamento de contexto
+context-management-context-save : persistência de contexto
+context-management-context-restore : restauração de contexto
+context-optimization : otimização do uso de contexto
+context-window-management : controle de janelas de contexto em LLMs
+context-compression : compressão de contexto sem perda semântica
+context-degradation : análise de perda de qualidade por excesso de contexto
+
+clean-code : boas práticas para código legível e manutenível
+code-refactoring-context-restore : refatoração mantendo contexto
+code-refactoring-refactor-clean : refatoração para limpeza de código
+code-refactoring-tech-debt : redução de dívida técnica
+sharp-edges : identificação de pontos críticos e perigosos no design
+
+monorepo-architect : arquitetura de monorepositórios
+monorepo-management : gestão de projetos em monorepo
+nx-workspace-patterns : padrões de workspace com NX
+turborepo-caching : cache e performance em monorepos
+
+microservices-patterns : padrões para arquitetura de microsserviços
+event-sourcing-architect : arquitetura baseada em eventos
+event-store-design : design de armazenamento de eventos
+cqrs-implementation : separação de comandos e consultas
+saga-orchestration : orquestração de transações distribuídas
+
+distributed-debugging-debug-trace : rastreamento de erros distribuídos
+distributed-tracing : observabilidade em sistemas distribuídos
+
+systematic-debugging : abordagem sistemática para depuração
+debugging-strategies : estratégias gerais de debug
+debugging-toolkit-smart-debug : ferramentas avançadas de debug
+error-debugging-error-analysis : análise de erros
+error-debugging-error-trace : rastreamento de erros
+error-debugging-multi-agent-review : revisão de erros com múltiplos agentes
+error-diagnostics-error-analysis : diagnóstico de falhas
+error-diagnostics-error-trace : análise de stack trace
+error-diagnostics-smart-debug : diagnóstico inteligente de erros
+error-detective : investigação profunda de falhas
+
+documentation-templates : templates para documentação técnica
+docs-architect : arquitetura de documentação
+readme : criação de READMEs profissionais
+design-md : documentação de design em markdown

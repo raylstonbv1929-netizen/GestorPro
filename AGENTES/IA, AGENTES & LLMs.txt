@@ -1,0 +1,40 @@
+ai-agents-architect : arquitetura de agentes de IA, definindo responsabilidades, fluxos de decisão, memória e uso de ferramentas
+autonomous-agents : agentes que executam tarefas sozinhos com base em objetivos
+autonomous-agent-patterns : padrões para criar agentes autônomos estáveis e escaláveis
+agent-manager-skill : gerenciamento do ciclo de vida de agentes (criação, execução, parada)
+agent-memory-mcp : implementação de memória persistente para agentes usando MCP
+agent-memory-systems : arquiteturas de memória de curto e longo prazo para IA
+agent-orchestration-improve-agent : melhoria da coordenação entre agentes
+agent-orchestration-multi-agent-optimize : otimização de sistemas multi-agentes
+agent-tool-builder : criação de ferramentas que agentes podem usar
+agent-evaluation : avaliação de performance, qualidade e confiabilidade de agentes
+
+llm-app-patterns : padrões para criar aplicações baseadas em LLM
+llm-application-dev-ai-assistant : desenvolvimento de assistentes inteligentes
+llm-application-dev-langchain-agent : uso do LangChain para agentes
+llm-application-dev-prompt-optimize : otimização de prompts para resultados melhores
+llm-evaluation : métricas e testes para avaliar respostas de LLMs
+
+prompt-engineer : criação de prompts eficazes
+prompt-engineering : técnicas avançadas de engenharia de prompt
+prompt-engineering-patterns : padrões reutilizáveis de prompt
+prompt-library : biblioteca organizada de prompts
+prompt-caching : cache de prompts e respostas para reduzir custo
+
+rag-engineer : engenharia de sistemas RAG (Retrieval-Augmented Generation)
+rag-implementation : implementação prática de RAG
+embedding-strategies : estratégias para criação e uso de embeddings
+vector-database-engineer : uso de bancos vetoriais
+vector-index-tuning : otimização de índices vetoriais
+
+langchain-architecture : arquitetura de sistemas usando LangChain
+langgraph : criação de fluxos complexos com grafos de agentes
+langfuse : observabilidade e métricas de aplicações LLM
+
+multi-agent-patterns : padrões de cooperação entre agentes
+multi-agent-brainstorming : uso de agentes para ideação
+dispatching-parallel-agents : execução paralela de agentes
+
+voice-agents : agentes de voz
+voice-ai-development : desenvolvimento de IA por voz
+voice-ai-engine-development : motores de voz com IA

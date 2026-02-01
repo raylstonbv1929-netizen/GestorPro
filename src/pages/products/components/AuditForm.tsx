@@ -145,6 +145,16 @@ export const AuditForm: React.FC<AuditFormProps> = ({
                                                 onChange={e => {
                                                     const newUnit = e.target.value;
                                                     let suggestedWeight = productForm.unitWeight;
+                                                    let suggestedCapacityUnit = productForm.capacityUnit;
+
+                                                    if (['sc (saco)', 'sc', 'bag (big bag)', 'ton', 'balde', 'bombona', '@ (arroba)'].includes(newUnit)) {
+                                                        suggestedCapacityUnit = 'kg';
+                                                    } else if (['L', 'ml', 'galão', 'tambor', 'bombona', 'balde'].includes(newUnit)) {
+                                                        // Note: balde/bombona can be both, but usually KG in fertilizers, L in chemicals.
+                                                        // Let's default based on unit name but allow change.
+                                                        if (['L', 'ml', 'galão', 'tambor'].includes(newUnit)) suggestedCapacityUnit = 'L';
+                                                    }
+
                                                     if (['kg', 'L', 'un', 'dose', 'm', 'm²', 'm³'].includes(newUnit)) suggestedWeight = '1,00';
                                                     else if (newUnit === 'ton') suggestedWeight = '1000,00';
                                                     else if (newUnit === 'sc (saco)' || newUnit === 'sc') suggestedWeight = '50,00';
@@ -153,7 +163,8 @@ export const AuditForm: React.FC<AuditFormProps> = ({
                                                     else if (newUnit === '@ (arroba)') suggestedWeight = '15,00';
                                                     else if (newUnit === 'ml') suggestedWeight = '0,001';
                                                     else if (newUnit === 'g') suggestedWeight = '0,001';
-                                                    setProductForm({ ...productForm, unit: newUnit, unitWeight: suggestedWeight });
+
+                                                    setProductForm({ ...productForm, unit: newUnit, unitWeight: suggestedWeight, capacityUnit: suggestedCapacityUnit });
                                                 }}
                                                 className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-6 py-4 text-sm font-bold text-white focus:border-emerald-500/50 outline-none transition-all shadow-inner uppercase appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2364748b%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E')] bg-[length:12px_auto] bg-[position:right_1.5rem_center] bg-no-repeat"
                                             >
@@ -188,8 +199,27 @@ export const AuditForm: React.FC<AuditFormProps> = ({
                                             </select>
                                         </div>
                                         <div className="flex flex-col gap-3">
-                                            <label className="text-[10px] text-slate-500 uppercase font-black tracking-widest ml-1 text-blue-400">Conversor Ref. (KG/L)</label>
-                                            <input placeholder="EX: 50,00" value={productForm.unitWeight} onChange={e => setProductForm({ ...productForm, unitWeight: maskNumber(e.target.value) })} className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-6 py-4 text-sm font-bold text-white focus:border-emerald-500/50 outline-none transition-all shadow-inner" />
+                                            <label className="text-[10px] text-slate-500 uppercase font-black tracking-widest ml-1 text-blue-400">Unidade de Saída (Medida)</label>
+                                            <select
+                                                required
+                                                value={productForm.capacityUnit}
+                                                onChange={e => setProductForm({ ...productForm, capacityUnit: e.target.value })}
+                                                className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-6 py-4 text-sm font-bold text-blue-400 focus:border-blue-500/50 outline-none transition-all shadow-inner uppercase appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%233b82f6%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E')] bg-[length:12px_auto] bg-[position:right_1.5rem_center] bg-no-repeat"
+                                            >
+                                                <option value="">Selecione...</option>
+                                                <option value="kg">Quilogramas (KG)</option>
+                                                <option value="L">Litros (L)</option>
+                                                <option value="un">Unidades (UN)</option>
+                                                <option value="m">Metros (M)</option>
+                                                <option value="dose">Doses</option>
+                                            </select>
+                                        </div>
+                                        <div className="flex flex-col gap-3">
+                                            <label className="text-[10px] text-slate-500 uppercase font-black tracking-widest ml-1 text-emerald-400">Conversor (Ref. por Unidade)</label>
+                                            <div className="relative">
+                                                <input placeholder="EX: 50,00" value={productForm.unitWeight} onChange={e => setProductForm({ ...productForm, unitWeight: maskNumber(e.target.value) })} className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-6 py-4 text-sm font-bold text-white focus:border-emerald-500/50 outline-none transition-all shadow-inner" />
+                                                <div className="absolute right-6 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-600 uppercase tracking-widest">{productForm.capacityUnit || 'UNIT'}</div>
+                                            </div>
                                         </div>
                                     </div>
 

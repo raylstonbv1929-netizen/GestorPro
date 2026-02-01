@@ -78,6 +78,11 @@ export const ProductHistoryDrawer: React.FC<ProductHistoryDrawerProps> = ({
                                                 <div className="flex items-center gap-2 text-[11px] text-white font-black italic">
                                                     {mov.type === 'in' ? <TrendingUp size={12} className="text-emerald-500" /> : <TrendingDown size={12} className="text-orange-500" />}
                                                     {mov.type === 'in' ? '+' : '-'}{formatNumber(mov.quantity)} {mov.quantityUnit}
+                                                    {product.capacityUnit && product.unitWeight > 1 && (
+                                                        <span className="text-[9px] text-slate-500 font-bold ml-1">
+                                                            (≈ {formatNumber(mov.quantity * product.unitWeight)} {product.capacityUnit.toUpperCase()})
+                                                        </span>
+                                                    )}
                                                 </div>
                                             </div>
                                             <div className="text-right">
@@ -116,9 +121,21 @@ export const ProductHistoryDrawer: React.FC<ProductHistoryDrawerProps> = ({
                 <div className="p-8 border-t border-slate-800 bg-slate-950/60 flex flex-col gap-4">
                     <div className="flex justify-between items-center px-2">
                         <span className="text-[9px] text-slate-500 font-black uppercase tracking-widest">Saldo Total Atual de Auditoria</span>
-                        <div className="flex items-baseline gap-2">
-                            <span className="text-2xl font-black text-white italic">{formatNumber(product.stock)}</span>
-                            <span className="text-[10px] text-slate-500 font-black uppercase">{product.unit}</span>
+                        <div className="text-right">
+                            <div className="flex items-baseline justify-end gap-2">
+                                <span className="text-2xl font-black text-white italic">{Math.floor(product.stock)}</span>
+                                <span className="text-[10px] text-slate-500 font-black uppercase">{product.unit}</span>
+                                {product.stock % 1 !== 0 && product.capacityUnit && product.unitWeight > 1 && (
+                                    <span className="text-emerald-500 text-sm font-black italic ml-2">
+                                        + {formatNumber((product.stock % 1) * product.unitWeight)} {product.capacityUnit.toUpperCase()}
+                                    </span>
+                                )}
+                            </div>
+                            {product.capacityUnit && product.unitWeight > 1 && (
+                                <p className="text-[9px] text-emerald-400 font-black uppercase tracking-tighter italic mt-1">
+                                    Total: {formatNumber(product.stock * product.unitWeight)} {product.capacityUnit.toUpperCase()}
+                                </p>
+                            )}
                         </div>
                     </div>
                 </div>

@@ -1,0 +1,62 @@
+backend-architect : definição da arquitetura de sistemas backend escaláveis
+backend-development-feature-development : desenvolvimento de funcionalidades no backend
+backend-dev-guidelines : boas práticas para desenvolvimento backend
+senior-fullstack : visão integrada de frontend e backend
+
+api-design-principles : princípios para design de APIs bem estruturadas
+api-patterns : padrões comuns de APIs REST e RPC
+openapi-spec-generation : geração de especificações OpenAPI
+api-documentation-generator : geração automática de documentação de API
+api-documenter : documentação técnica de APIs
+api-testing-observability-api-mock : testes e observabilidade de APIs
+api-fuzzing-bug-bounty : testes de fuzzing para encontrar falhas
+api-security-best-practices : boas práticas de segurança em APIs
+
+auth-implementation-patterns : padrões de autenticação e autorização
+broken-authentication : análise de falhas comuns de autenticação
+clerk-auth : autenticação usando Clerk
+
+nodejs-backend-patterns : padrões de backend com Node.js
+nodejs-best-practices : boas práticas em Node.js
+nestjs-expert : desenvolvimento avançado com NestJS
+
+python-development-python-scaffold : estruturação de projetos Python
+python-patterns : padrões de desenvolvimento em Python
+python-performance-optimization : otimização de performance em Python
+python-packaging : empacotamento e distribuição de projetos Python
+fastapi-pro : desenvolvimento avançado com FastAPI
+
+java-pro : desenvolvimento profissional em Java
+go-concurrency-patterns : concorrência em Go
+golang-pro : desenvolvimento avançado em Go
+php-pro : desenvolvimento profissional em PHP
+ruby-pro : desenvolvimento profissional em Ruby
+c-pro : desenvolvimento em C
+cpp-pro : desenvolvimento em C++
+csharp-pro : desenvolvimento em C#
+dotnet-architect : arquitetura em .NET
+dotnet-backend-patterns : padrões backend em .NET
+
+graphql : fundamentos de GraphQL
+graphql-architect : arquitetura de sistemas GraphQL
+rest-api-patterns : padrões REST (quando aplicável)
+
+database-architect : arquitetura de bancos de dados
+database-design : modelagem de dados
+database-migration : migração de bancos de dados
+database-migrations-sql-migrations : migrações SQL
+database-migrations-migration-observability : observabilidade em migrações
+database-optimizer : otimização de queries e índices
+database-cloud-optimization-cost-optimize : redução de custos em bancos cloud
+
+postgresql : uso avançado de PostgreSQL
+postgres-best-practices : boas práticas com Postgres
+nosql-expert : bancos NoSQL
+neon-postgres : uso do Neon Postgres
+
+payment-integration : integração de pagamentos
+stripe-integration : integração com Stripe
+paypal-integration : integração com PayPal
+
+file-uploads : upload e gestão de arquivos
+file-path-traversal : prevenção de ataques de path traversal

@@ -6,6 +6,7 @@ import { Product, Collaborator, Property, Plot } from '../../../types';
 
 interface QuickAdjustPopoverProps {
     product: Product;
+    initialType?: 'in' | 'out';
     onClose: () => void;
     onAdjust: (payload: any) => void;
     collaborators: Collaborator[];
@@ -16,6 +17,7 @@ interface QuickAdjustPopoverProps {
 
 export const QuickAdjustPopover: React.FC<QuickAdjustPopoverProps> = ({
     product,
+    initialType = 'in',
     onClose,
     onAdjust,
     collaborators,
@@ -24,20 +26,47 @@ export const QuickAdjustPopover: React.FC<QuickAdjustPopoverProps> = ({
     settings
 }) => {
     const [quantity, setQuantity] = useState('');
-    const [type, setType] = useState<'in' | 'out'>('in');
+    const [type, setType] = useState<'in' | 'out'>(initialType);
     const [reason, setReason] = useState('Ajuste de Auditoria');
     const [operator, setOperator] = useState(settings.userName || '');
     const [plotId, setPlotId] = useState('');
     const [cost, setCost] = useState('');
     const [batch, setBatch] = useState('');
     const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+    const [inputUnit, setInputUnit] = useState(product.unit);
+
+    const weight = parseFloat(String(product.unitWeight)) || 1;
 
     const qtyValue = parseValue(quantity);
 
+    const toggleInputUnit = (newUnit: string) => {
+        if (newUnit === inputUnit) return;
+
+        const val = parseValue(quantity);
+        if (weight > 0 && val > 0) {
+            if (newUnit === product.capacityUnit) {
+                // Converting from Primary to Capacity (e.g., 1 SC -> 50 KG)
+                setQuantity(maskNumber(val * weight));
+            } else {
+                // Converting from Capacity to Primary (e.g., 50 KG -> 1 SC)
+                setQuantity(maskNumber(val / weight));
+            }
+        }
+        setInputUnit(newUnit);
+    };
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        const qty = parseValue(quantity);
-        if (qty > 0) {
+        let qty = parseValue(quantity);
+
+        // Convert capacity unit to primary unit if necessary
+        if (inputUnit === product.capacityUnit && weight > 0) {
+            qty = qty / weight;
+        }
+
+        const isNegative = type === 'out' && (Number(product.stock) - qty < -0.00001);
+
+        if (qty > 0 && !isNegative) {
             let finalReason = reason;
             if (type === 'out' && plotId) {
                 const plot = plots.find(p => p.id === parseInt(plotId));
@@ -55,7 +84,8 @@ export const QuickAdjustPopover: React.FC<QuickAdjustPopoverProps> = ({
                 plotId: plotId ? parseInt(plotId) : undefined,
                 cost: type === 'in' ? parseValue(cost) : undefined,
                 batch: batch || undefined,
-                date
+                date,
+                quantityUnit: inputUnit // Record actually used unit in movement for better audits
             });
             onClose();
         }
@@ -63,38 +93,55 @@ export const QuickAdjustPopover: React.FC<QuickAdjustPopoverProps> = ({
 
     const getConversionDisplay = () => {
         if (!qtyValue) return null;
-        const normalized = qtyValue; // Simplify for now as the original page used a complex calculateNormalizedQuantity
+
+        let normalized = qtyValue;
+        if (inputUnit === product.capacityUnit && weight > 0) {
+            normalized = qtyValue / weight;
+        }
+
         const currentStock = Number(product.stock);
         const newStock = type === 'in' ? currentStock + normalized : currentStock - normalized;
-        const weight = parseFloat(String(product.unitWeight)) || 1;
-        const totalKgAfter = newStock * weight;
+        const totalCapAfter = newStock * weight;
+        const capUnit = (product.capacityUnit || 'KG/L').toUpperCase();
+        const isNegativeStock = newStock < -0.00001;
 
         return (
             <div className="mt-4 space-y-3 bg-slate-950/80 p-4 rounded-2xl border border-slate-800/50 animate-fade-in shadow-inner">
                 <div className="flex justify-between items-center text-[10px]">
-                    <span className="text-slate-500 uppercase font-black tracking-wider">Peso da Operação:</span>
-                    <span className="text-emerald-400 font-black">≈ {(normalized * weight).toFixed(2)} KG/L</span>
+                    <span className="text-slate-500 uppercase font-black tracking-wider">Impacto na Capacidade:</span>
+                    <span className="text-emerald-400 font-black">≈ {(normalized * weight).toFixed(2)} {capUnit}</span>
                 </div>
                 <div className="pt-3 border-t border-slate-800/50">
                     <div className="flex justify-between items-center">
-                        <span className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">Estoque Previsto:</span>
+                        <span className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">Saldo Projetado:</span>
                         <div className="text-right">
-                            <p className={`text-xl font-black ${newStock < 0 ? 'text-rose-500' : 'text-white'}`}>
-                                {newStock.toFixed(2)} {product.unit}
-                            </p>
-                            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-tighter">({totalKgAfter.toFixed(2)} KG/L)</p>
+                            <div className={`text-xl font-black ${isNegativeStock ? 'text-rose-500' : 'text-white'}`}>
+                                {Math.floor(Math.abs(newStock)) * (newStock < 0 ? -1 : 1)} <span className="text-slate-500 text-xs uppercase">{product.unit}</span>
+                                {newStock % 1 !== 0 && (
+                                    <span className={`${isNegativeStock ? 'text-rose-400' : 'text-emerald-500'} ml-1`}>
+                                        {newStock < 0 ? '-' : '+'} {formatNumber(Math.abs((newStock % 1) * weight))} <span className="text-[10px]">{capUnit}</span>
+                                    </span>
+                                )}
+                            </div>
+                            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-tighter">({totalCapAfter.toFixed(2)} {capUnit} Total)</p>
                         </div>
                     </div>
                 </div>
-                {newStock < 0 && (
-                    <div className="flex items-center gap-2 mt-2 p-2 bg-rose-500/10 border border-rose-500/20 rounded-lg">
-                        <AlertCircle size={14} className="text-rose-500" />
-                        <p className="text-[8px] text-rose-400 font-black uppercase">Atenção: Estoque ficará negativo!</p>
+                {isNegativeStock && (
+                    <div className="flex items-center gap-2 mt-2 p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl animate-shake">
+                        <AlertCircle size={16} className="text-rose-500" />
+                        <p className="text-[10px] text-rose-400 font-black uppercase tracking-widest">Ruptura de Estoque: Operação Travada</p>
                     </div>
                 )}
             </div>
         );
     };
+
+    // Calculate isNegativeStock for the submit button's disabled state
+    const currentQtyNormalized = inputUnit === product.capacityUnit && weight > 0 ? qtyValue / weight : qtyValue;
+    const projectedStock = type === 'in' ? Number(product.stock) + currentQtyNormalized : Number(product.stock) - currentQtyNormalized;
+    const isNegativeStockForSubmit = projectedStock < -0.00001;
+
 
     return (
         <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
@@ -128,8 +175,33 @@ export const QuickAdjustPopover: React.FC<QuickAdjustPopoverProps> = ({
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="space-y-2">
-                                <label className="text-[10px] text-slate-500 uppercase font-black tracking-widest ml-1">Volume ({product.unit})</label>
-                                <input autoFocus placeholder="0,00" value={quantity} onChange={e => setQuantity(maskNumber(e.target.value))} className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-6 py-5 text-3xl font-black text-white focus:border-emerald-500/50 outline-none transition-all shadow-inner italic" />
+                                <div className="flex justify-between items-center ml-1">
+                                    <label className="text-[10px] text-slate-500 uppercase font-black tracking-widest">Quantidade</label>
+                                    {product.capacityUnit && weight > 1 && (
+                                        <div className="flex gap-1.5 p-0.5 bg-slate-900 border border-slate-800 rounded-lg">
+                                            <button
+                                                type="button"
+                                                onClick={() => toggleInputUnit(product.unit)}
+                                                className={`px-2 py-0.5 rounded text-[8px] font-black uppercase transition-all ${inputUnit === product.unit ? 'bg-emerald-500 text-emerald-950' : 'text-slate-500'}`}
+                                            >
+                                                {product.unit}
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => toggleInputUnit(product.capacityUnit)}
+                                                className={`px-2 py-0.5 rounded text-[8px] font-black uppercase transition-all ${inputUnit === product.capacityUnit ? 'bg-blue-500 text-blue-950' : 'text-slate-500'}`}
+                                            >
+                                                {product.capacityUnit}
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="relative">
+                                    <input autoFocus placeholder="0,00" value={quantity} onChange={e => setQuantity(maskNumber(e.target.value))} className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-6 py-5 text-3xl font-black text-white focus:border-emerald-500/50 outline-none transition-all shadow-inner italic pr-24" />
+                                    <div className={`absolute right-6 top-1/2 -translate-y-1/2 text-xs font-black uppercase tracking-widest ${inputUnit === product.capacityUnit ? 'text-blue-400' : 'text-slate-600'}`}>
+                                        {inputUnit}
+                                    </div>
+                                </div>
                             </div>
                             <div className="space-y-2">
                                 <label className="text-[10px] text-slate-500 uppercase font-black tracking-widest ml-1">Data da Operação</label>
@@ -208,10 +280,10 @@ export const QuickAdjustPopover: React.FC<QuickAdjustPopoverProps> = ({
                     <button
                         type="button"
                         onClick={handleSubmit}
-                        disabled={!quantity || qtyValue <= 0}
+                        disabled={!quantity || qtyValue <= 0 || (type === 'out' && (Number(product.stock) - (inputUnit === product.capacityUnit ? parseValue(quantity) / weight : parseValue(quantity)) < -0.00001))}
                         className={`w-full py-6 rounded-2xl font-black text-[11px] uppercase tracking-[0.3em] transition-all shadow-xl active:scale-95 disabled:opacity-30 disabled:grayscale ${type === 'in' ? 'bg-emerald-500 text-emerald-950 shadow-emerald-500/20' : 'bg-orange-500 text-orange-950 shadow-orange-500/20'}`}
                     >
-                        {type === 'in' ? 'CONFIRMAR RECEBIMENTO' : 'AUTORIZAR RETRIRADA'}
+                        {type === 'in' ? 'CONFIRMAR RECEBIMENTO' : 'AUTORIZAR RETIRADA'}
                     </button>
                     <button onClick={onClose} className="w-full mt-4 py-2 text-[8px] font-black text-slate-600 uppercase tracking-widest hover:text-white transition-colors">Abortar Missão</button>
                 </div>

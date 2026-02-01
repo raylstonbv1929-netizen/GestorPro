@@ -4,6 +4,7 @@ export interface Product {
     category: string;
     stock: number;
     unit: string;
+    capacityUnit?: string;
     unitWeight: number;
     minStock: number;
     price: number;

@@ -1,0 +1,49 @@
+devops-troubleshooter : diagnóstico e resolução de problemas em ambientes DevOps
+cloud-architect : arquitetura de soluções em nuvem
+hybrid-cloud-architect : arquitetura híbrida (on-premise + cloud)
+multi-cloud-architecture : uso de múltiplos provedores de nuvem
+
+aws-skills : uso profissional de serviços AWS
+aws-serverless : arquiteturas serverless na AWS
+gcp-cloud-run : deploy e execução de apps no Google Cloud Run
+azure-functions : uso de funções serverless no Azure
+
+docker-expert : criação e otimização de containers Docker
+kubernetes-architect : arquitetura e gestão de clusters Kubernetes
+helm-chart-scaffolding : criação de charts Helm
+istio-traffic-management : gerenciamento de tráfego com Istio
+service-mesh-expert : uso de service mesh
+service-mesh-observability : observabilidade em service mesh
+
+terraform-skill : infraestrutura como código com Terraform
+terraform-module-library : criação de módulos Terraform reutilizáveis
+
+ci-cd-automation-workflow-automate : automação de pipelines CI/CD
+github-actions-templates : templates para GitHub Actions
+github-workflow-automation : automação de workflows GitHub
+gitlab-ci-patterns : padrões de CI no GitLab
+
+gitops-workflow : GitOps para gerenciamento de infra
+deployment-engineer : engenharia de deploy
+deployment-pipeline-design : design de pipelines de deploy
+deployment-procedures : procedimentos de deploy
+deployment-validation-config-validate : validação de configurações
+deployment-validation : validação pós-deploy
+
+server-management : administração de servidores
+linux-shell-scripting : scripts em shell Linux
+bash-linux : uso do Bash no Linux
+bash-pro : scripts Bash avançados
+bash-defensive-patterns : escrita defensiva de scripts Bash
+posix-shell-pro : shell compatível POSIX
+busybox-on-windows : uso do BusyBox no Windows
+
+observability-engineer : engenharia de observabilidade
+observability-monitoring-monitor-setup : setup de monitoramento
+observability-monitoring-slo-implement : implementação de SLOs
+distributed-tracing : rastreamento distribuído
+prometheus-configuration : configuração do Prometheus
+grafana-dashboards : criação de dashboards Grafana
+loki-mode : logs centralizados com Loki
+
+cost-optimization : otimização de custos em cloud

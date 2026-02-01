@@ -1,0 +1,28 @@
+data-engineer : engenharia de dados para coleta, transformação e armazenamento
+data-engineering-data-driven-feature : desenvolvimento de funcionalidades orientadas a dados
+data-engineering-data-pipeline : construção de pipelines de dados
+data-quality-frameworks : garantia de qualidade e consistência dos dados
+
+data-scientist : análise avançada de dados e modelagem estatística
+data-storytelling : comunicação de insights por meio de dados
+
+analytics-tracking : rastreamento de eventos e métricas
+kpi-dashboard-design : criação de dashboards de KPIs
+segment-cdp : uso de CDP para centralização de dados de clientes
+
+dbt-transformation-patterns : transformações de dados com dbt
+sql-pro : uso avançado de SQL
+sql-optimization-patterns : otimização de consultas SQL
+nosql-expert : bancos de dados NoSQL
+similarity-search-patterns : busca por similaridade em dados
+
+machine-learning-ops-ml-pipeline : pipelines de ML em produção
+ml-engineer : engenharia de machine learning
+ml-pipeline-workflow : fluxo completo de pipelines de ML
+mlops-engineer : operação e manutenção de modelos de ML
+
+quant-analyst : análise quantitativa e modelos matemáticos
+
+embedding-strategies : estratégias de embeddings
+vector-database-engineer : engenharia de bancos vetoriais
+vector-index-tuning : ajuste fino de índices vetoriais

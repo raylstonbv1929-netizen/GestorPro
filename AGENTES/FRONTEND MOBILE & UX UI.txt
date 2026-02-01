@@ -1,0 +1,48 @@
+frontend-developer : desenvolvimento de interfaces web modernas
+frontend-dev-guidelines : boas práticas de desenvolvimento frontend
+frontend-design : princípios de design aplicados ao frontend
+frontend-mobile-development-component-scaffold : criação de componentes mobile
+frontend-slides : criação de apresentações técnicas em frontend
+
+react-best-practices : boas práticas com React
+react-modernization : modernização de aplicações React legadas
+react-patterns : padrões de desenvolvimento React
+react-state-management : gerenciamento de estado em React
+react-ui-patterns : padrões de UI em React
+
+nextjs-best-practices : boas práticas com Next.js
+nextjs-app-router-patterns : padrões do App Router
+nextjs-supabase-auth : autenticação com Supabase no Next.js
+
+angular-migration : migração de projetos Angular
+
+flutter-expert : desenvolvimento avançado com Flutter
+expo-deployment : deploy de apps com Expo
+upgrading-expo : atualização de projetos Expo
+
+ios-developer : desenvolvimento iOS
+swiftui-expert-skill : desenvolvimento com SwiftUI
+
+mobile-design : design para dispositivos móveis
+ui-ux-designer : design de experiência do usuário
+ui-ux-pro-max : UX avançado e estratégico
+ui-skills : habilidades gerais de UI
+
+tailwind-design-system : design system com Tailwind
+tailwind-patterns : padrões de uso do Tailwind
+radix-ui-design-system : uso do Radix UI
+
+canvas-design : design usando canvas
+threejs-skills : desenvolvimento 3D com Three.js
+3d-web-experience : experiências web 3D
+
+interactive-portfolio : criação de portfólio interativo
+
+accessibility-compliance-accessibility-audit : auditoria de acessibilidade
+wcag-audit-patterns : padrões de auditoria WCAG
+screen-reader-testing : testes com leitores de tela
+
+form-cro : otimização de formulários
+page-cro : otimização de páginas
+popup-cro : otimização de popups
+scroll-experience : experiência de rolagem
