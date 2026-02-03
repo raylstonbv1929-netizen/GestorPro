@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
     Sprout, X, Edit, Plus, LandPlot, Activity, DollarSign, Search,
     Calendar, Filter, MapPin, Droplets, AlertCircle, Trash2, Copy,
@@ -145,6 +145,11 @@ export const FieldApplicationsPage = () => {
         unit: ''
     });
 
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const productSelectRef = useRef<HTMLSelectElement>(null);
+    const doseInputRef = useRef<HTMLInputElement>(null);
+    const plotSelectRef = useRef<HTMLSelectElement>(null);
+
     // --- INTEGRITY CHECKS ---
     const stockAlerts = useMemo(() => {
         return formData.appliedProducts.map((ap: any) => {
@@ -169,13 +174,56 @@ export const FieldApplicationsPage = () => {
     useEffect(() => {
         if (isFormOpen) {
             document.body.style.overflow = 'hidden';
+            // Auto-focus logic
+            setTimeout(() => {
+                if (editingApplicationId) {
+                    productSelectRef.current?.focus();
+                } else {
+                    plotSelectRef.current?.focus();
+                }
+            }, 100);
         } else {
             document.body.style.overflow = 'unset';
         }
         return () => {
             document.body.style.overflow = 'unset';
         };
-    }, [isFormOpen]);
+    }, [isFormOpen, editingApplicationId]);
+
+    // Shortcuts Logic
+    useEffect(() => {
+        if (!isFormOpen) return;
+
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') {
+                setIsFormOpen(false);
+            }
+            if (e.ctrlKey && e.key === 'Enter') {
+                e.preventDefault();
+                handleSubmit(e as any);
+            }
+            if (e.altKey && e.key.toLowerCase() === 's') {
+                e.preventDefault();
+                setFormData((prev: any) => ({
+                    ...prev,
+                    status: prev.status === 'completed' ? 'planned' : 'completed'
+                }));
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [isFormOpen, formData, editingApplicationId]);
+
+    // Auto-unit filling
+    useEffect(() => {
+        if (currentProduct.productId) {
+            const product = products.find(p => p.id === parseInt(currentProduct.productId));
+            if (product && !currentProduct.unit) {
+                setCurrentProduct(prev => ({ ...prev, unit: product.unit }));
+            }
+        }
+    }, [currentProduct.productId, products]);
 
     useEffect(() => {
         if (selectedPlot && !formData.areaApplied) {
@@ -220,6 +268,9 @@ export const FieldApplicationsPage = () => {
         }));
 
         setCurrentProduct({ productId: '', dose: '', unit: '' });
+
+        // Return focus to product selection for next item
+        setTimeout(() => productSelectRef.current?.focus(), 50);
     };
 
     const removeProductFromMix = (index: number) => {
@@ -232,7 +283,8 @@ export const FieldApplicationsPage = () => {
     const totalApplicationCost = formData.appliedProducts.reduce((acc: number, p: any) => acc + p.cost, 0);
 
     const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
+        if (e) e.preventDefault();
+        if (isSubmitting) return;
 
         if (hasStockIssues && formData.status === 'completed') {
             if (!confirm(`ALERTA: Há produtos com estoque insuficiente. Deseja prosseguir mesmo assim? Isso deixará o estoque negativo.`)) {
@@ -322,8 +374,12 @@ export const FieldApplicationsPage = () => {
             addActivity('Homologou missão de defesa', `${selectedPlot.name}`, 'neutral');
         }
 
-        setIsFormOpen(false);
-        resetForm();
+        setIsSubmitting(true);
+        setTimeout(() => {
+            setIsFormOpen(false);
+            resetForm();
+            setIsSubmitting(false);
+        }, 500);
     };
 
     const resetForm = () => {
@@ -342,6 +398,7 @@ export const FieldApplicationsPage = () => {
         });
         setCurrentProduct({ productId: '', dose: '', unit: '' });
         setEditingApplicationId(null);
+        setIsSubmitting(false);
     };
 
     const cloneApplication = (app: any) => {
@@ -647,7 +704,7 @@ export const FieldApplicationsPage = () => {
                                                     <span>TALHÃO_ALVO</span>
                                                     <MapPin size={10} className="opacity-30 group-focus-within/input:opacity-100 text-cyan-500" />
                                                 </label>
-                                                <select required value={formData.plotId} onChange={e => setFormData({ ...formData, plotId: e.target.value })} className="w-full bg-slate-900/50 border border-slate-900 rounded-none px-4 py-3 text-xs font-mono text-white outline-none focus:border-cyan-500/50 transition-all appearance-none cursor-pointer uppercase">
+                                                <select required ref={plotSelectRef} value={formData.plotId} onChange={e => setFormData({ ...formData, plotId: e.target.value })} className="w-full bg-slate-900/50 border border-slate-900 rounded-none px-4 py-3 text-xs font-mono text-white outline-none focus:border-cyan-500/50 transition-all appearance-none cursor-pointer uppercase">
                                                     <option value="">SELECIONAR_ALVO</option>
                                                     {properties.map(prop => (
                                                         <optgroup key={prop.id} label={prop.name.toUpperCase()} className="bg-slate-950">
@@ -716,14 +773,28 @@ export const FieldApplicationsPage = () => {
                                             <div className="grid grid-cols-12 gap-3 items-end">
                                                 <div className="col-span-6 space-y-1.5">
                                                     <label className="text-[8px] text-slate-500 font-bold uppercase tracking-widest ml-1">COMPONENTE_INSUMO</label>
-                                                    <select value={currentProduct.productId} onChange={e => setCurrentProduct({ ...currentProduct, productId: e.target.value })} className="w-full bg-slate-900 border border-slate-800 rounded-none px-4 py-3 text-[10px] font-mono text-white outline-none focus:border-cyan-500/50 transition-all appearance-none uppercase">
+                                                    <select ref={productSelectRef} value={currentProduct.productId} onChange={e => setCurrentProduct({ ...currentProduct, productId: e.target.value })} className="w-full bg-slate-900 border border-slate-800 rounded-none px-4 py-3 text-[10px] font-mono text-white outline-none focus:border-cyan-500/50 transition-all appearance-none uppercase">
                                                         <option value="">SELECIONAR_INSUMO</option>
                                                         {products.map(p => <option key={p.id} value={p.id} className="bg-slate-950 font-mono">{p.name.toUpperCase()} [ESTOQUE:{formatNumber(p.stock)}]</option>)}
                                                     </select>
                                                 </div>
                                                 <div className="col-span-3 space-y-1.5">
                                                     <label className="text-[8px] text-slate-500 font-bold uppercase tracking-widest ml-1">DOSE</label>
-                                                    <input type="number" step="0.001" value={currentProduct.dose} onChange={e => setCurrentProduct({ ...currentProduct, dose: e.target.value })} placeholder="0.000" className="w-full bg-slate-900 border border-slate-800 rounded-none px-4 py-3 text-xs font-mono text-white outline-none focus:border-cyan-500/50 transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
+                                                    <input
+                                                        ref={doseInputRef}
+                                                        type="number"
+                                                        step="0.001"
+                                                        value={currentProduct.dose}
+                                                        onChange={e => setCurrentProduct({ ...currentProduct, dose: e.target.value })}
+                                                        onKeyDown={(e) => {
+                                                            if (e.key === 'Enter') {
+                                                                e.preventDefault();
+                                                                handleAddProductToMix();
+                                                            }
+                                                        }}
+                                                        placeholder="0.000"
+                                                        className="w-full bg-slate-900 border border-slate-800 rounded-none px-4 py-3 text-xs font-mono text-white outline-none focus:border-cyan-500/50 transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                                    />
                                                 </div>
                                                 <div className="col-span-2">
                                                     <select className="w-full bg-slate-900 border border-slate-800 rounded-none px-3 py-3 text-[9px] font-mono text-white outline-none focus:border-cyan-500/50 appearance-none uppercase" value={currentProduct.unit || (products.find(p => p.id === parseInt(currentProduct.productId))?.unit || '')} onChange={e => setCurrentProduct({ ...currentProduct, unit: e.target.value })}>
@@ -848,11 +919,27 @@ export const FieldApplicationsPage = () => {
                                 </div>
                             </div>
 
-                            <div className="flex gap-4">
-                                <button type="button" onClick={() => setIsFormOpen(false)} className="px-8 py-5 border border-slate-900 text-slate-500 font-bold text-[10px] uppercase tracking-[0.3em] hover:text-white hover:bg-slate-900 transition-all">ABORTAR_MISSÃO</button>
-                                <button type="submit" onClick={handleSubmit} className={`px-16 py-5 font-black text-[11px] uppercase tracking-[0.4em] transition-all shadow-[0_0_20px_rgba(0,0,0,0.3)] active:scale-95 flex gap-4 items-center ${hasStockIssues ? 'bg-rose-600 text-white hover:bg-rose-500 shadow-rose-900/20' : 'bg-cyan-600 text-white hover:bg-cyan-500 shadow-cyan-900/20'}`}>
-                                    <Zap size={16} /> EFETIVAR_PROTOCOLO
-                                </button>
+                            <div className="flex items-center gap-6">
+                                <div className="hidden xl:flex flex-col gap-1 items-end mr-4 border-r border-slate-900 pr-6">
+                                    <p className="text-[7px] font-black text-slate-600 uppercase tracking-[0.2em] italic">Atalhos de Sistema</p>
+                                    <div className="flex gap-3">
+                                        <span className="text-[8px] text-slate-500 font-mono"><span className="text-cyan-600 font-black">[ESC]</span> ABORTAR</span>
+                                        <span className="text-[8px] text-slate-500 font-mono"><span className="text-cyan-600 font-black">[ALT+S]</span> STATUS</span>
+                                        <span className="text-[8px] text-slate-500 font-mono"><span className="text-cyan-600 font-black">[CTRL+ENTER]</span> EFETIVAR</span>
+                                    </div>
+                                </div>
+                                <div className="flex gap-4">
+                                    <button type="button" onClick={() => setIsFormOpen(false)} className="px-8 py-5 border border-slate-900 text-slate-500 font-bold text-[10px] uppercase tracking-[0.3em] hover:text-white hover:bg-slate-900 transition-all">ABORTAR_MISSÃO</button>
+                                    <button
+                                        type="submit"
+                                        onClick={handleSubmit}
+                                        disabled={isSubmitting}
+                                        className={`px-16 py-5 font-black text-[11px] uppercase tracking-[0.4em] transition-all shadow-[0_0_20px_rgba(0,0,0,0.3)] active:scale-95 flex gap-4 items-center ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''} ${hasStockIssues ? 'bg-rose-600 text-white hover:bg-rose-500 shadow-rose-900/20' : 'bg-cyan-600 text-white hover:bg-cyan-500 shadow-cyan-900/20'}`}
+                                    >
+                                        {isSubmitting ? <Loader2 className="animate-spin" size={16} /> : <Zap size={16} />}
+                                        {isSubmitting ? 'PROCESSANDO...' : 'EFETIVAR_PROTOCOLO'}
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
