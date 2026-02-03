@@ -9,10 +9,11 @@ import { useApp } from '../../contexts/AppContext';
 import { Card } from '../../components/common/Card';
 import { SimpleBarChart } from '../../components/common/SimpleBarChart';
 import { formatCurrency, parseValue, maskValue } from '../../utils/format';
+import { BACKUP_FINANCE_DATA } from '../../data/financeBackupData';
 
 export const FinancePage = () => {
     const {
-        transactions, setTransactions, addActivity, settings
+        transactions, setTransactions, addActivity, settings, properties
     } = useApp();
 
     const [searchTerm, setSearchTerm] = useState('');
@@ -32,8 +33,10 @@ export const FinancePage = () => {
         status: 'paid' | 'pending';
         type: 'income' | 'expense';
         entity: string;
+        propertyId?: number;
+        propertyName?: string;
     }>({
-        description: '', category: 'Outros', amount: '', date: new Date().toISOString().split('T')[0], status: 'pending', type: 'expense', entity: ''
+        description: '', category: 'Outros', amount: '', date: new Date().toISOString().split('T')[0], status: 'pending', type: 'expense', entity: '', propertyName: ''
     });
     const [sortBy, setSortBy] = useState('date-desc');
 
@@ -111,7 +114,7 @@ export const FinancePage = () => {
 
     const resetForm = () => {
         setEditingId(null);
-        setForm({ description: '', category: 'Outros', amount: '', date: new Date().toISOString().split('T')[0], status: 'pending', type: 'expense', entity: '' });
+        setForm({ description: '', category: 'Outros', amount: '', date: new Date().toISOString().split('T')[0], status: 'pending', type: 'expense', entity: '', propertyName: '' });
     };
 
     const deleteTransaction = (id: number) => {
@@ -139,6 +142,22 @@ export const FinancePage = () => {
         link.href = URL.createObjectURL(blob);
         link.download = `financeiro_${new Date().toISOString().split('T')[0]}.csv`;
         link.click();
+    };
+
+    const handleMigration = () => {
+        const existingIds = new Set(transactions.map(t => t.id));
+        const newTransactions = BACKUP_FINANCE_DATA.filter(t => !existingIds.has(t.id));
+
+        if (newTransactions.length === 0) {
+            alert('Todos os dados do backup já foram importados.');
+            return;
+        }
+
+        if (window.confirm(`Deseja importar ${newTransactions.length} lançamentos do backup Agrogest?`)) {
+            setTransactions([...transactions, ...newTransactions]);
+            addActivity('Importou Backup Agrogest', `${newTransactions.length} lançamentos adicionados`, 'neutral');
+            alert(`${newTransactions.length} lançamentos importados com sucesso!`);
+        }
     };
 
     return (
@@ -173,8 +192,16 @@ export const FinancePage = () => {
                     <button
                         onClick={handleDownloadCSV}
                         className="p-5 rounded-2xl bg-slate-900 border border-slate-800 text-slate-500 hover:text-white transition-all shadow-lg active:scale-90"
+                        title="Exportar CSV"
                     >
                         <Download size={20} />
+                    </button>
+                    <button
+                        onClick={handleMigration}
+                        className="p-5 rounded-2xl bg-amber-600/10 border border-amber-500/30 text-amber-500 hover:bg-amber-600 hover:text-white transition-all shadow-lg active:scale-90"
+                        title="Sincronizar Backup Agrogest"
+                    >
+                        <RefreshCw size={20} />
                     </button>
                 </div>
             </div>
@@ -299,6 +326,11 @@ export const FinancePage = () => {
                                         <div className="flex flex-wrap gap-x-4 gap-y-1 text-[9px] text-slate-600 mt-2 font-black uppercase tracking-widest italic">
                                             <span className="flex items-center gap-1.5"><Calendar size={12} className="text-amber-500/50" /> {new Date(t.date).toLocaleDateString('pt-BR')}</span>
                                             <span className="flex items-center gap-1.5"><User size={12} className="text-amber-500/50" /> {t.entity || 'N/A'}</span>
+                                            {t.propertyName && (
+                                                <span className="flex items-center gap-1.5 text-amber-500/70">
+                                                    <Landmark size={12} /> {t.propertyName}
+                                                </span>
+                                            )}
                                             <span className="px-2 py-0.5 bg-slate-900/80 rounded border border-slate-800 text-slate-500 group-hover:text-slate-300 transition-colors">{t.category}</span>
                                         </div>
                                     </div>
@@ -412,19 +444,33 @@ export const FinancePage = () => {
                                                 <input value={form.entity} onChange={e => setForm({ ...form, entity: e.target.value.toUpperCase() })} placeholder="EX: COOPERATIVA AGROINDUSTRIAL" className="w-full bg-slate-900 border border-slate-800 rounded-2xl px-6 py-4 text-sm font-bold text-white outline-none focus:border-amber-500/50 transition-all italic" />
                                             </div>
                                             <div className="space-y-1.5">
-                                                <label className="text-[10px] text-slate-500 font-black uppercase tracking-widest ml-1">Categoria Fiscal</label>
+                                                <label className="text-[10px] text-slate-500 font-black uppercase tracking-widest ml-1">Propriedade / Fazenda</label>
                                                 <select
-                                                    value={categoriesForForm.includes(form.category) ? form.category : 'custom'}
-                                                    onChange={e => e.target.value === 'custom' ? setForm({ ...form, category: '' }) : setForm({ ...form, category: e.target.value })}
+                                                    value={form.propertyId || ''}
+                                                    onChange={e => {
+                                                        const p = properties.find(prop => prop.id === Number(e.target.value));
+                                                        setForm({ ...form, propertyId: p?.id, propertyName: p?.name });
+                                                    }}
                                                     className="w-full bg-slate-900 border border-slate-800 rounded-2xl px-6 py-4 text-sm font-black text-white outline-none focus:border-amber-500/50 appearance-none italic"
                                                 >
-                                                    {categoriesForForm.map(c => <option key={c} value={c}>{c}</option>)}
-                                                    <option value="custom">+ PERSONALIZADA</option>
+                                                    <option value="">Geral / Não Especificado</option>
+                                                    {properties.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                                                 </select>
-                                                {!categoriesForForm.includes(form.category) && (
-                                                    <input required placeholder="NOME DA CATEGORIA" value={form.category} onChange={e => setForm({ ...form, category: e.target.value.toUpperCase() })} className="mt-2 w-full bg-slate-950 border border-amber-500/30 rounded-xl px-4 py-3 text-[10px] font-black text-amber-400 outline-none italic" />
-                                                )}
                                             </div>
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <label className="text-[10px] text-slate-500 font-black uppercase tracking-widest ml-1">Categoria Fiscal</label>
+                                            <select
+                                                value={categoriesForForm.includes(form.category) ? form.category : 'custom'}
+                                                onChange={e => e.target.value === 'custom' ? setForm({ ...form, category: '' }) : setForm({ ...form, category: e.target.value })}
+                                                className="w-full bg-slate-900 border border-slate-800 rounded-2xl px-6 py-4 text-sm font-black text-white outline-none focus:border-amber-500/50 appearance-none italic"
+                                            >
+                                                {categoriesForForm.map(c => <option key={c} value={c}>{c}</option>)}
+                                                <option value="custom">+ PERSONALIZADA</option>
+                                            </select>
+                                            {!categoriesForForm.includes(form.category) && (
+                                                <input required placeholder="NOME DA CATEGORIA" value={form.category} onChange={e => setForm({ ...form, category: e.target.value.toUpperCase() })} className="mt-2 w-full bg-slate-950 border border-amber-500/30 rounded-xl px-4 py-3 text-[10px] font-black text-amber-400 outline-none italic" />
+                                            )}
                                         </div>
                                     </div>
                                 </div>

@@ -23,6 +23,8 @@ export interface Transaction {
     status: 'paid' | 'pending';
     type: 'income' | 'expense';
     entity: string;
+    propertyId?: number;
+    propertyName?: string;
 }
 
 export interface Task {
