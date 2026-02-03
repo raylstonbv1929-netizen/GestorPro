@@ -167,6 +167,17 @@ export const FieldApplicationsPage = () => {
     const selectedPlot = plots.find(p => p.id === parseInt(formData.plotId));
 
     useEffect(() => {
+        if (isFormOpen) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = 'unset';
+        }
+        return () => {
+            document.body.style.overflow = 'unset';
+        };
+    }, [isFormOpen]);
+
+    useEffect(() => {
         if (selectedPlot && !formData.areaApplied) {
             setFormData((prev: any) => ({ ...prev, areaApplied: selectedPlot.area.toString() }));
         }
@@ -338,7 +349,6 @@ export const FieldApplicationsPage = () => {
         setFormData({
             ...app,
             id: undefined,
-            date: new Date().toISOString().split('T')[0],
             appliedProducts: app.products || app.appliedProducts || []
         });
         setIsFormOpen(true);
@@ -409,184 +419,187 @@ export const FieldApplicationsPage = () => {
     }, [fieldApplications, properties, plots]);
 
     return (
-        <div className="animate-fade-in space-y-6 h-full flex flex-col p-2 overflow-y-auto custom-scrollbar pb-10">
-            {/* FIELD SENTINEL COMMAND CENTER */}
-            <div className="flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-6 bg-slate-900/40 p-8 rounded-[1.5rem] md:rounded-[2.5rem] border border-slate-800/60 shadow-2xl backdrop-blur-xl relative overflow-hidden group">
-                <div className="absolute top-0 left-0 w-1.5 h-full bg-cyan-500 z-20" />
+        <>
+            <div className="animate-fade-in space-y-6 h-full flex flex-col p-2 overflow-y-auto custom-scrollbar pb-10">
+                {/* FIELD SENTINEL COMMAND CENTER */}
+                <div className="flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-6 bg-slate-900/40 p-8 rounded-[1.5rem] md:rounded-[2.5rem] border border-slate-800/60 shadow-2xl backdrop-blur-xl relative overflow-hidden group">
+                    <div className="absolute top-0 left-0 w-1.5 h-full bg-cyan-500 z-20" />
 
-                <div className="relative z-10 flex items-center gap-6">
-                    <div className="w-16 h-16 rounded-[1.25rem] bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-500 shadow-lg shadow-cyan-500/10 relative overflow-hidden group/icon">
-                        <div className="absolute inset-0 bg-cyan-500 opacity-0 group-hover/icon:opacity-20 transition-opacity" />
-                        <Sprout size={32} strokeWidth={2.5} className="relative z-10" />
-                    </div>
-                    <div>
-                        <h2 className="text-3xl font-black text-white flex items-center gap-4 uppercase italic tracking-tighter">
-                            Controle de Missão <span className="text-slate-500 font-light">| Defesa</span>
-                        </h2>
-                        <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.4em] mt-2 ml-1 flex items-center gap-2">
-                            Integridade Operacional e Vetores de Cultivo
-                        </p>
-                    </div>
-                </div>
-
-                <div className="flex gap-4 relative z-10 lg:w-auto w-full">
-                    <button
-                        onClick={() => { resetForm(); setEditingApplicationId(null); setIsFormOpen(true); }}
-                        className="flex-1 lg:flex-none bg-cyan-600 hover:bg-cyan-500 text-white px-10 py-5 rounded-2xl font-black text-xs uppercase tracking-[0.2em] transition-all shadow-xl shadow-cyan-500/20 active:scale-95 flex items-center justify-center gap-3 border-b-4 border-cyan-800 italic"
-                    >
-                        <Plus size={20} /> Iniciar Protocolo
-                    </button>
-                    <button
-                        onClick={() => setIsFilterPanelOpen(!isFilterPanelOpen)}
-                        className={`p-5 rounded-2xl border transition-all ${isFilterPanelOpen ? 'bg-cyan-500/10 border-cyan-500 text-cyan-400' : 'bg-slate-900 border-slate-800 text-slate-500 hover:text-white group-hover:border-slate-700'}`}
-                    >
-                        <Filter size={20} />
-                    </button>
-                </div>
-            </div>
-
-            {/* TELEMETRY MATRIX */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {[
-                    { label: 'Investimento Mensal', value: formatCurrency(telemetry.monthlyInv, settings.currency), icon: DollarSign, color: 'sky', code: 'FIN_DEF' },
-                    { label: 'Cobertura de Defesa', value: telemetry.coveragePercent.toFixed(1), unit: '%', icon: LandPlot, color: 'emerald', code: 'GEO_DEF' },
-                    { label: 'Missões em Standby', value: telemetry.nextMissions.toString().padStart(2, '0'), unit: 'ALVOS', icon: Clock, color: 'orange', code: 'OP_DEF' }
-                ].map((item, idx) => (
-                    <Card key={idx} className="group p-6 border-slate-900 hover:border-slate-800 bg-slate-950 relative overflow-hidden rounded-[2rem]">
-                        <div className={`absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity text-${item.color}-500`}>
-                            <item.icon size={48} />
+                    <div className="relative z-10 flex items-center gap-6">
+                        <div className="w-16 h-16 rounded-[1.25rem] bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-500 shadow-lg shadow-cyan-500/10 relative overflow-hidden group/icon">
+                            <div className="absolute inset-0 bg-cyan-500 opacity-0 group-hover/icon:opacity-20 transition-opacity" />
+                            <Sprout size={32} strokeWidth={2.5} className="relative z-10" />
                         </div>
-                        <p className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] mb-1 italic group-hover:text-slate-400 transition-colors">{item.label}</p>
-                        <h4 className="text-3xl font-black text-white italic tracking-tighter group-hover:translate-x-1 transition-transform">
-                            {item.value} {item.unit && <span className="text-xs font-black text-slate-600 uppercase italic">{item.unit}</span>}
-                        </h4>
-                        <div className="mt-4 flex items-center justify-between">
-                            <span className="text-[8px] font-black text-slate-700 tracking-widest uppercase italic">{item.code}</span>
-                            <div className={`h-1 flex-1 mx-4 bg-slate-800 rounded-full overflow-hidden`}>
-                                <div className={`h-full bg-${item.color}-500 shadow-[0_0_8px] shadow-${item.color}-500`} style={{ width: idx === 1 ? `${item.value}%` : idx === 2 && item.value === '00' ? '5%' : '80%' }} />
-                            </div>
-                        </div>
-                    </Card>
-                ))}
-            </div>
-
-            {/* SCANNER PANEL */}
-            {isFilterPanelOpen && (
-                <div className="bg-slate-950/80 border border-slate-900 p-8 rounded-[2.5rem] mb-6 animate-in slide-in-from-top-4 duration-500 backdrop-blur-xl shadow-2xl relative overflow-hidden">
-                    <div className="absolute top-0 left-0 w-1.5 h-full bg-cyan-500/50 z-20" />
-
-                    <div className="space-y-6">
-                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2 ml-1">
-                            <Search size={12} className="text-cyan-500" /> Scanner de Varredura Operacional
-                        </label>
-
-                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
-                            <div className="lg:col-span-8">
-                                <div className="relative group h-full">
-                                    <input
-                                        type="text"
-                                        placeholder="FILTRAR POR TALHÃO, OPERADOR OU INSUMO..."
-                                        className="w-full h-full bg-slate-900/50 border border-slate-800 py-4 px-6 rounded-2xl text-xs font-black uppercase tracking-widest text-white outline-none focus:border-cyan-500/50 transition-all italic placeholder:text-slate-800 shadow-inner"
-                                        value={searchTerm}
-                                        onChange={e => setSearchTerm(e.target.value)}
-                                    />
-                                    <div className="absolute right-6 top-1/2 -translate-y-1/2 opacity-20 group-focus-within:opacity-100 transition-opacity pointer-events-none">
-                                        <Zap size={16} className="text-cyan-500" />
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="lg:col-span-4 flex gap-2 h-full">
-                                {['all', 'completed', 'planned'].map(s => (
-                                    <button
-                                        key={s}
-                                        onClick={() => setAdvancedFilters(prev => ({ ...prev, status: s }))}
-                                        className={`flex-1 px-4 py-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border whitespace-nowrap flex items-center justify-center ${advancedFilters.status === s ? 'bg-cyan-600 text-white border-cyan-400 shadow-lg' : 'bg-slate-900 border-slate-800 text-slate-500 hover:text-slate-200'}`}
-                                    >
-                                        {s === 'all' ? 'Ver Tudo' : s === 'completed' ? 'Executed' : 'Planned'}
-                                    </button>
-                                ))}
-                            </div>
+                        <div>
+                            <h2 className="text-3xl font-black text-white flex items-center gap-4 uppercase italic tracking-tighter">
+                                Controle de Missão <span className="text-slate-500 font-light">| Defesa</span>
+                            </h2>
+                            <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.4em] mt-2 ml-1 flex items-center gap-2">
+                                Integridade Operacional e Vetores de Cultivo
+                            </p>
                         </div>
                     </div>
+
+                    <div className="flex gap-4 relative z-10 lg:w-auto w-full">
+                        <button
+                            onClick={() => { resetForm(); setEditingApplicationId(null); setIsFormOpen(true); }}
+                            className="flex-1 lg:flex-none bg-cyan-600 hover:bg-cyan-500 text-white px-10 py-5 rounded-2xl font-black text-xs uppercase tracking-[0.2em] transition-all shadow-xl shadow-cyan-500/20 active:scale-95 flex items-center justify-center gap-3 border-b-4 border-cyan-800 italic"
+                        >
+                            <Plus size={20} /> Iniciar Protocolo
+                        </button>
+                        <button
+                            onClick={() => setIsFilterPanelOpen(!isFilterPanelOpen)}
+                            className={`p-5 rounded-2xl border transition-all ${isFilterPanelOpen ? 'bg-cyan-500/10 border-cyan-500 text-cyan-400' : 'bg-slate-900 border-slate-800 text-slate-500 hover:text-white group-hover:border-slate-700'}`}
+                        >
+                            <Filter size={20} />
+                        </button>
+                    </div>
                 </div>
-            )}
 
-            {/* APPLICATION GRID */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-6 md:gap-8">
-                {filteredApplications.map(app => (
-                    <Card key={app.id} variant="glass" className="group p-0 border-slate-800/60 hover:border-cyan-500/40 transition-all duration-500 overflow-hidden rounded-[1.5rem] md:rounded-[2.5rem] flex flex-col relative shadow-xl">
-                        <div className="absolute top-0 right-0 p-6 z-10 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button onClick={() => cloneApplication(app)} className="text-slate-700 hover:text-cyan-400 transition-colors" title="Clonar Missão"><Copy size={16} /></button>
-                            <button onClick={() => deleteApplication(app)} className="text-slate-700 hover:text-rose-500 transition-colors" title="Abortar Registro"><Trash2 size={16} /></button>
-                        </div>
-
-                        <div className={`h-1.5 w-full ${app.status === 'planned' ? 'bg-orange-500 animate-pulse' : 'bg-cyan-500'}`} />
-
-                        <div className="p-8">
-                            <div className="flex items-start gap-5 mb-8">
-                                <div className="w-16 h-16 rounded-[1.25rem] bg-slate-950 border border-slate-800 flex items-center justify-center text-cyan-500 group-hover:bg-cyan-500 group-hover:text-cyan-950 transition-all duration-500 shadow-xl font-black italic">
-                                    {app.plotName.substring(0, 2).toUpperCase()}
+                {/* TELEMETRY MATRIX */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {[
+                        { label: 'Investimento Mensal', value: formatCurrency(telemetry.monthlyInv, settings.currency), icon: DollarSign, color: 'sky', code: 'FIN_DEF' },
+                        { label: 'Cobertura de Defesa', value: telemetry.coveragePercent.toFixed(1), unit: '%', icon: LandPlot, color: 'emerald', code: 'GEO_DEF' },
+                        { label: 'Missões em Standby', value: telemetry.nextMissions.toString().padStart(2, '0'), unit: 'ALVOS', icon: Clock, color: 'orange', code: 'OP_DEF' }
+                    ].map((item, idx) => (
+                        <Card key={idx} className="group p-6 border-slate-900 hover:border-slate-800 bg-slate-950 relative overflow-hidden rounded-[2rem]">
+                            <div className={`absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity text-${item.color}-500`}>
+                                <item.icon size={48} />
+                            </div>
+                            <p className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] mb-1 italic group-hover:text-slate-400 transition-colors">{item.label}</p>
+                            <h4 className="text-3xl font-black text-white italic tracking-tighter group-hover:translate-x-1 transition-transform">
+                                {item.value} {item.unit && <span className="text-xs font-black text-slate-600 uppercase italic">{item.unit}</span>}
+                            </h4>
+                            <div className="mt-4 flex items-center justify-between">
+                                <span className="text-[8px] font-black text-slate-700 tracking-widest uppercase italic">{item.code}</span>
+                                <div className={`h-1 flex-1 mx-4 bg-slate-800 rounded-full overflow-hidden`}>
+                                    <div className={`h-full bg-${item.color}-500 shadow-[0_0_8px] shadow-${item.color}-500`} style={{ width: idx === 1 ? `${item.value}%` : idx === 2 && item.value === '00' ? '5%' : '80%' }} />
                                 </div>
-                                <div className="min-w-0 flex-1">
-                                    <h4 className="font-black text-white text-lg uppercase tracking-tighter italic leading-none truncate group-hover:text-cyan-300 transition-colors">{app.plotName}</h4>
-                                    <div className="flex items-center gap-2 mt-2">
-                                        <span className="px-2.5 py-1 bg-slate-900 rounded-lg text-[9px] text-slate-500 font-black uppercase tracking-[0.1em] border border-slate-800 italic">{app.target || 'DEFESA_GERAL'}</span>
-                                        <span className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-[0.1em] border ${app.status === 'completed' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : 'bg-orange-500/10 text-orange-400 border-orange-500/20 shadow-[0_0_10px_rgba(249,115,22,0.1)]'}`}>
-                                            {app.status === 'completed' ? 'MISSÃO_CUMPRIDA' : 'EM_STANDBY'}
-                                        </span>
+                            </div>
+                        </Card>
+                    ))}
+                </div>
+
+                {/* SCANNER PANEL */}
+                {isFilterPanelOpen && (
+                    <div className="bg-slate-950/80 border border-slate-900 p-8 rounded-[2.5rem] mb-6 animate-in slide-in-from-top-4 duration-500 backdrop-blur-xl shadow-2xl relative overflow-hidden">
+                        <div className="absolute top-0 left-0 w-1.5 h-full bg-cyan-500/50 z-20" />
+
+                        <div className="space-y-6">
+                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2 ml-1">
+                                <Search size={12} className="text-cyan-500" /> Scanner de Varredura Operacional
+                            </label>
+
+                            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
+                                <div className="lg:col-span-8">
+                                    <div className="relative group h-full">
+                                        <input
+                                            type="text"
+                                            placeholder="FILTRAR POR TALHÃO, OPERADOR OU INSUMO..."
+                                            className="w-full h-full bg-slate-900/50 border border-slate-800 py-4 px-6 rounded-2xl text-xs font-black uppercase tracking-widest text-white outline-none focus:border-cyan-500/50 transition-all italic placeholder:text-slate-800 shadow-inner"
+                                            value={searchTerm}
+                                            onChange={e => setSearchTerm(e.target.value)}
+                                        />
+                                        <div className="absolute right-6 top-1/2 -translate-y-1/2 opacity-20 group-focus-within:opacity-100 transition-opacity pointer-events-none">
+                                            <Zap size={16} className="text-cyan-500" />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="lg:col-span-4 flex gap-2 h-full">
+                                    {['all', 'completed', 'planned'].map(s => (
+                                        <button
+                                            key={s}
+                                            onClick={() => setAdvancedFilters(prev => ({ ...prev, status: s }))}
+                                            className={`flex-1 px-4 py-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border whitespace-nowrap flex items-center justify-center ${advancedFilters.status === s ? 'bg-cyan-600 text-white border-cyan-400 shadow-lg' : 'bg-slate-900 border-slate-800 text-slate-500 hover:text-slate-200'}`}
+                                        >
+                                            {s === 'all' ? 'Ver Tudo' : s === 'completed' ? 'Executed' : 'Planned'}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* APPLICATION GRID */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-6 md:gap-8">
+                    {filteredApplications.map(app => (
+                        <Card key={app.id} variant="glass" className="group p-0 border-slate-800/60 hover:border-cyan-500/40 transition-all duration-500 overflow-hidden rounded-[1.5rem] md:rounded-[2.5rem] flex flex-col relative shadow-xl">
+                            <div className="absolute top-0 right-0 p-6 z-10 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button onClick={() => cloneApplication(app)} className="text-slate-700 hover:text-cyan-400 transition-colors" title="Clonar Missão"><Copy size={16} /></button>
+                                <button onClick={() => deleteApplication(app)} className="text-slate-700 hover:text-rose-500 transition-colors" title="Abortar Registro"><Trash2 size={16} /></button>
+                            </div>
+
+                            <div className={`h-1.5 w-full ${app.status === 'planned' ? 'bg-orange-500 animate-pulse' : 'bg-cyan-500'}`} />
+
+                            <div className="p-8">
+                                <div className="flex items-start gap-5 mb-8">
+                                    <div className="w-16 h-16 rounded-[1.25rem] bg-slate-950 border border-slate-800 flex items-center justify-center text-cyan-500 group-hover:bg-cyan-500 group-hover:text-cyan-950 transition-all duration-500 shadow-xl font-black italic">
+                                        {app.plotName.substring(0, 2).toUpperCase()}
+                                    </div>
+                                    <div className="min-w-0 flex-1">
+                                        <h4 className="font-black text-white text-lg uppercase tracking-tighter italic leading-none truncate group-hover:text-cyan-300 transition-colors">{app.plotName}</h4>
+                                        <div className="flex items-center gap-2 mt-2">
+                                            <span className="px-2.5 py-1 bg-slate-900 rounded-lg text-[9px] text-slate-500 font-black uppercase tracking-[0.1em] border border-slate-800 italic">{app.target || 'DEFESA_GERAL'}</span>
+                                            <span className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-[0.1em] border ${app.status === 'completed' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : 'bg-orange-500/10 text-orange-400 border-orange-500/20 shadow-[0_0_10px_rgba(249,115,22,0.1)]'}`}>
+                                                {app.status === 'completed' ? 'MISSÃO_CUMPRIDA' : 'EM_STANDBY'}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-6">
+                                    <div className="grid grid-cols-2 gap-px bg-slate-800/40 border border-slate-800/40 rounded-2xl overflow-hidden">
+                                        <div className="bg-slate-950/60 p-4 flex flex-col gap-1">
+                                            <p className="text-[8px] text-slate-600 font-black uppercase tracking-widest italic flex items-center gap-1.5"><Calendar size={10} /> Data Alvo</p>
+                                            <p className="text-[11px] font-black text-white italic">{app.date.split('-').reverse().join('/')}</p>
+                                        </div>
+                                        <div className="bg-slate-950/60 p-4 flex flex-col gap-1">
+                                            <p className="text-[8px] text-slate-600 font-black uppercase tracking-widest italic flex items-center gap-1.5"><User size={10} /> Operador</p>
+                                            <p className="text-[11px] font-black text-white uppercase truncate italic">{app.operator || 'N/A'}</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-slate-950/50 p-4 rounded-[1.25rem] border border-slate-900 group-hover:border-cyan-500/20 transition-all">
+                                        <div className="flex justify-between items-center mb-3">
+                                            <span className="text-[9px] font-black text-slate-700 uppercase tracking-widest italic flex items-center gap-2"><Droplets size={12} className="text-cyan-800" /> Mix Insumos ({app.appliedProducts?.length || 0})</span>
+                                            <span className="text-[11px] font-black text-cyan-500 italic font-mono">{formatCurrency(app.totalCost, settings.currency)}</span>
+                                        </div>
+                                        <div className="flex gap-1.5 flex-wrap">
+                                            {(app.appliedProducts || []).slice(0, 3).map((p: any, i: number) => (
+                                                <span key={i} className="px-2 py-0.5 bg-slate-900 text-[8px] text-slate-400 font-black rounded border border-slate-800 uppercase italic transition-colors hover:text-white">{p.productName}</span>
+                                            ))}
+                                            {(app.appliedProducts?.length || 0) > 3 && <span className="px-2 py-0.5 bg-slate-900 text-[8px] text-slate-600 font-black rounded border border-slate-800 italic">+{app.appliedProducts.length - 3}</span>}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="space-y-6">
-                                <div className="grid grid-cols-2 gap-px bg-slate-800/40 border border-slate-800/40 rounded-2xl overflow-hidden">
-                                    <div className="bg-slate-950/60 p-4 flex flex-col gap-1">
-                                        <p className="text-[8px] text-slate-600 font-black uppercase tracking-widest italic flex items-center gap-1.5"><Calendar size={10} /> Data Alvo</p>
-                                        <p className="text-[11px] font-black text-white italic">{app.date.split('-').reverse().join('/')}</p>
-                                    </div>
-                                    <div className="bg-slate-950/60 p-4 flex flex-col gap-1">
-                                        <p className="text-[8px] text-slate-600 font-black uppercase tracking-widest italic flex items-center gap-1.5"><User size={10} /> Operador</p>
-                                        <p className="text-[11px] font-black text-white uppercase truncate italic">{app.operator || 'N/A'}</p>
-                                    </div>
-                                </div>
-
-                                <div className="bg-slate-950/50 p-4 rounded-[1.25rem] border border-slate-900 group-hover:border-cyan-500/20 transition-all">
-                                    <div className="flex justify-between items-center mb-3">
-                                        <span className="text-[9px] font-black text-slate-700 uppercase tracking-widest italic flex items-center gap-2"><Droplets size={12} className="text-cyan-800" /> Mix Insumos ({app.appliedProducts?.length || 0})</span>
-                                        <span className="text-[11px] font-black text-cyan-500 italic font-mono">{formatCurrency(app.totalCost, settings.currency)}</span>
-                                    </div>
-                                    <div className="flex gap-1.5 flex-wrap">
-                                        {(app.appliedProducts || []).slice(0, 3).map((p: any, i: number) => (
-                                            <span key={i} className="px-2 py-0.5 bg-slate-900 text-[8px] text-slate-400 font-black rounded border border-slate-800 uppercase italic transition-colors hover:text-white">{p.productName}</span>
-                                        ))}
-                                        {(app.appliedProducts?.length || 0) > 3 && <span className="px-2 py-0.5 bg-slate-900 text-[8px] text-slate-600 font-black rounded border border-slate-800 italic">+{app.appliedProducts.length - 3}</span>}
-                                    </div>
-                                </div>
+                            <div className="mt-auto bg-slate-950/50 p-6 border-t border-slate-900 flex justify-between items-center group-hover:bg-slate-900/60 transition-colors">
+                                <span className="text-[9px] font-black text-slate-700 uppercase tracking-widest italic flex items-center gap-2">
+                                    <Activity size={12} className="text-cyan-800" /> AREA: {app.areaApplied} HA
+                                </span>
+                                <button
+                                    onClick={() => editApplication(app)}
+                                    className="px-8 py-3 bg-slate-950 border border-slate-800 hover:border-cyan-500/50 rounded-xl text-[10px] font-black text-slate-500 hover:text-white uppercase tracking-widest transition-all active:scale-95 flex items-center gap-3 italic"
+                                >
+                                    <Terminal size={14} /> DETALHAR_PROTOCOL
+                                </button>
                             </div>
-                        </div>
+                        </Card>
+                    ))}
+                </div>
 
-                        <div className="mt-auto bg-slate-950/50 p-6 border-t border-slate-900 flex justify-between items-center group-hover:bg-slate-900/60 transition-colors">
-                            <span className="text-[9px] font-black text-slate-700 uppercase tracking-widest italic flex items-center gap-2">
-                                <Activity size={12} className="text-cyan-800" /> AREA: {app.areaApplied} HA
-                            </span>
-                            <button
-                                onClick={() => editApplication(app)}
-                                className="px-8 py-3 bg-slate-950 border border-slate-800 hover:border-cyan-500/50 rounded-xl text-[10px] font-black text-slate-500 hover:text-white uppercase tracking-widest transition-all active:scale-95 flex items-center gap-3 italic"
-                            >
-                                <Terminal size={14} /> DETALHAR_PROTOCOL
-                            </button>
-                        </div>
-                    </Card>
-                ))}
             </div>
 
             {/* PROTOCOL MODAL: APLICAÇÃO (INDUSTRIAL DATA-TECH) */}
             {isFormOpen && (
-                <div className="fixed inset-0 z-[120] flex items-center justify-center p-2 md:p-4 animate-fade-in font-sans ring-inset">
+                <div className="fixed inset-0 z-[120] flex animate-fade-in font-sans ring-inset">
                     <div className="absolute inset-0 bg-slate-950/98 backdrop-blur-sm" onClick={() => setIsFormOpen(false)} />
 
-                    <div className="w-full max-w-[98vw] lg:max-w-7xl relative z-10 p-0 overflow-hidden border border-slate-800 bg-slate-950 shadow-[0_0_50px_rgba(0,0,0,0.5)] rounded-none flex flex-col h-[95vh] md:h-[90vh]">
+                    <div className="w-full h-full relative z-10 p-0 overflow-hidden border-0 bg-slate-950 shadow-none flex flex-col">
                         {/* BARRA DE INTEGRIDADE */}
                         <div className="h-1 w-full bg-slate-900 relative">
                             <div className="h-full bg-cyan-500 shadow-[0_0_15px_#06b6d4] transition-all duration-700" style={{ width: formData.plotId && formData.appliedProducts.length > 0 ? '100%' : '20%' }} />
@@ -845,6 +858,6 @@ export const FieldApplicationsPage = () => {
                     </div>
                 </div>
             )}
-        </div>
+        </>
     );
 };
