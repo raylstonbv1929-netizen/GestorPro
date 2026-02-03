@@ -3,8 +3,10 @@ import {
     Wallet, Filter, Download, X, Plus, Search, Activity, TrendingUp,
     TrendingDown, Calendar, User, Edit, Trash2, Zap, ShieldCheck,
     FileText, Landmark, Clock, ArrowUpRight, ArrowDownRight,
-    Settings, MoreHorizontal, CheckCircle2, AlertCircle, RefreshCw
+    Settings, MoreHorizontal, CheckCircle2, AlertCircle, RefreshCw, Scan
 } from 'lucide-react';
+import { ReceiptScanner } from '../../components/finance/ReceiptScanner';
+import { ExtractedData } from '../../utils/ocr-parser';
 import { useApp } from '../../contexts/AppContext';
 import { Card } from '../../components/common/Card';
 import { SimpleBarChart } from '../../components/common/SimpleBarChart';
@@ -38,6 +40,7 @@ export const FinancePage = () => {
     }>({
         description: '', category: 'Outros', amount: '', date: new Date().toISOString().split('T')[0], status: 'pending', type: 'expense', entity: '', propertyName: ''
     });
+    const [isScannerOpen, setIsScannerOpen] = useState(false);
     const [sortBy, setSortBy] = useState('date-desc');
 
     const AGRICULTURAL_CATEGORIES = [
@@ -195,6 +198,13 @@ export const FinancePage = () => {
                         title="Exportar CSV"
                     >
                         <Download size={20} />
+                    </button>
+                    <button
+                        onClick={() => setIsScannerOpen(true)}
+                        className="p-5 rounded-2xl bg-emerald-600/10 border border-emerald-500/30 text-emerald-500 hover:bg-emerald-600 hover:text-white transition-all shadow-lg active:scale-90"
+                        title="IA Scanner Vision"
+                    >
+                        <Scan size={20} />
                     </button>
                     <button
                         onClick={handleMigration}
@@ -519,6 +529,27 @@ export const FinancePage = () => {
                                 <button type="submit" onClick={handleSubmit} className="px-16 py-5 rounded-2xl bg-amber-600 text-white font-black text-[11px] uppercase tracking-[0.4em] hover:bg-amber-500 transition-all shadow-2xl shadow-amber-500/30 active:scale-95 border-b-4 border-amber-800 italic">Efetivar Lançamento</button>
                             </div>
                         </div>
+                    </Card>
+                </div>
+            )}
+            {/* SCANNER MODAL */}
+            {isScannerOpen && (
+                <div className="fixed inset-0 z-[150] flex items-center justify-center p-2 md:p-4">
+                    <div className="absolute inset-0 bg-slate-950/98 backdrop-blur-3xl" onClick={() => setIsScannerOpen(false)} />
+                    <Card variant="glass" className="w-full max-w-6xl relative z-10 p-10 overflow-hidden border-emerald-500/20 shadow-2xl rounded-[1.5rem] md:rounded-[3rem] !scale-100 flex flex-col h-[90vh]">
+                        <ReceiptScanner
+                            onCancel={() => setIsScannerOpen(false)}
+                            onConfirm={(data) => {
+                                setForm({
+                                    ...form,
+                                    description: data.description,
+                                    amount: data.amount,
+                                    date: data.date
+                                });
+                                setIsScannerOpen(false);
+                                setIsFormOpen(true);
+                            }}
+                        />
                     </Card>
                 </div>
             )}
