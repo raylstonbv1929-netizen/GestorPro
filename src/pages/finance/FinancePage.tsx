@@ -53,7 +53,7 @@ export const FinancePage = () => {
         'Seguros', 'Juros e Tarifas', 'Empréstimos', 'Outros'
     ];
 
-    const categories = useMemo(() => ['Todas', ...new Set([...AGRICULTURAL_CATEGORIES, ...transactions.map(t => t.category)])].sort(), [transactions]);
+    const categories = useMemo(() => ['Todas', ...new Set([...AGRICULTURAL_CATEGORIES, ...transactions.map(t => t.category)])].sort(), [transactions, AGRICULTURAL_CATEGORIES]);
     const categoriesForForm = useMemo(() => categories.filter(c => c !== 'Todas'), [categories]);
 
     const filteredTransactions = useMemo(() => {
@@ -105,11 +105,11 @@ export const FinancePage = () => {
 
         if (editingId) {
             setTransactions(transactions.map(t => t.id === editingId ? { ...t, ...form, amount: amountVal } : t));
-            addActivity('Atualizou lançamento financeiro', form.description, form.type as any);
+            addActivity('Atualizou lançamento financeiro', form.description, form.type as 'income' | 'expense' | 'neutral');
         } else {
-            const newTransaction: any = { ...form, amount: amountVal, id: Date.now() };
+            const newTransaction = { ...form, amount: amountVal, id: Date.now() };
             setTransactions([newTransaction, ...transactions]);
-            addActivity(form.type === 'income' ? 'Registrou nova receita' : 'Registrou nova despesa', form.description, form.type as any);
+            addActivity(form.type === 'income' ? 'Registrou nova receita' : 'Registrou nova despesa', form.description, form.type as 'income' | 'expense' | 'neutral');
         }
         setIsFormOpen(false);
         resetForm();
@@ -356,7 +356,7 @@ export const FinancePage = () => {
                                         </span>
                                     </div>
                                     <div className="flex gap-2">
-                                        <button onClick={() => { setEditingId(t.id); setForm({ ...t, amount: maskValue(t.amount.toString()) } as any); setIsFormOpen(true); }} className="w-10 h-10 bg-slate-900 border border-slate-800 hover:border-amber-500/40 text-slate-600 hover:text-white rounded-xl transition-all flex items-center justify-center active:scale-90"><Edit size={16} /></button>
+                                        <button onClick={() => { setEditingId(t.id); setForm({ ...t, amount: maskValue(t.amount.toString()) }); setIsFormOpen(true); }} className="w-10 h-10 bg-slate-900 border border-slate-800 hover:border-amber-500/40 text-slate-600 hover:text-white rounded-xl transition-all flex items-center justify-center active:scale-90"><Edit size={16} /></button>
                                         <button onClick={() => deleteTransaction(t.id)} className="w-10 h-10 bg-slate-900 border border-slate-800 hover:bg-rose-500/10 text-slate-800 hover:text-rose-500 rounded-xl transition-all flex items-center justify-center active:scale-90"><Trash2 size={16} /></button>
                                     </div>
                                 </div>
@@ -509,7 +509,7 @@ export const FinancePage = () => {
                                             </div>
                                             <div className="space-y-1.5">
                                                 <label className="text-[10px] text-slate-500 font-black uppercase tracking-widest ml-1">Status de Liquidez</label>
-                                                <select value={form.status} onChange={e => setForm({ ...form, status: e.target.value as any })} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-xs font-black text-white outline-none focus:border-amber-500/50 appearance-none cursor-pointer italic">
+                                                <select value={form.status} onChange={e => setForm({ ...form, status: e.target.value as 'paid' | 'pending' })} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-xs font-black text-white outline-none focus:border-amber-500/50 appearance-none cursor-pointer italic">
                                                     <option value="paid">PAGO / EFETIVADO</option><option value="pending">PENDENTE / AGENDADO</option>
                                                 </select>
                                             </div>

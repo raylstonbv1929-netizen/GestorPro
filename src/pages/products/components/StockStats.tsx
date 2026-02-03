@@ -34,7 +34,7 @@ export const StockStats: React.FC<StockStatsProps> = ({
                     <div className="mt-4 flex items-center justify-between">
                         <span className="text-[8px] font-black text-slate-700 tracking-widest uppercase italic">{item.code}</span>
                         <div className={`h-1 flex-1 mx-4 bg-slate-800 rounded-full overflow-hidden`}>
-                            <div className={`h-full bg-${item.color}-500 shadow-[0_0_8px] shadow-${item.color}-500`} style={{ width: idx === 0 ? '100%' : idx === 1 ? (item.value > 0 ? '40%' : '5%') : '85%' }} />
+                            <div className={`h-full bg-${item.color}-500 shadow-[0_0_8px] shadow-${item.color}-500`} style={{ width: idx === 0 ? '100%' : idx === 1 ? (lowStockItems > 0 ? '40%' : '5%') : '85%' }} />
                         </div>
                     </div>
                 </Card>
