@@ -39,7 +39,7 @@ const GlobalStyles = () => (
       from { opacity: 0; transform: translateY(10px); }
       to { opacity: 1; transform: translateY(0); }
     }
-    .animate-fade-in { animation: fadeIn 0.5s ease-out forwards; }
+    .animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
     
     @keyframes slideDown {
       from { opacity: 0; transform: translateY(-10px); }
@@ -159,7 +159,7 @@ function MainContent() {
       <GlobalStyles />
 
       {/* Sidebar */}
-      <aside className={`${isSidebarOpen ? 'w-72' : 'w-24'} bg-slate-950/50 backdrop-blur-2xl border-r border-slate-800/60 flex flex-col transition-all duration-500 ease-in-out z-20 no-print relative`}>
+      <aside className={`${isSidebarOpen ? 'w-72' : 'w-24'} bg-slate-950/50 backdrop-blur-2xl border-r border-slate-800/60 flex flex-col transition-all duration-300 ease-in-out z-20 no-print relative`}>
         <div className="p-8 flex items-center gap-4">
           <div className="w-10 h-10 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/20 shrink-0">
             <Sprout className="text-slate-950" size={24} strokeWidth={2.5} />

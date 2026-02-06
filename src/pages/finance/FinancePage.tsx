@@ -6,9 +6,11 @@ import {
     Settings, MoreHorizontal, CheckCircle2, AlertCircle, RefreshCw, Scan
 } from 'lucide-react';
 import { ReceiptScanner } from '../../components/finance/ReceiptScanner';
-import { ExtractedData } from '../../utils/ocr-parser';
 import { useApp } from '../../contexts/AppContext';
+import { Transaction } from '../../types';
 import { Card } from '../../components/common/Card';
+import { TacticalFilterBlade } from '../../components/common/TacticalFilterBlade';
+import { useTacticalFilter } from '../../hooks/useTacticalFilter';
 import { SimpleBarChart } from '../../components/common/SimpleBarChart';
 import { formatCurrency, parseValue, maskValue } from '../../utils/format';
 import { BACKUP_FINANCE_DATA } from '../../data/financeBackupData';
@@ -18,13 +20,24 @@ export const FinancePage = () => {
         transactions, setTransactions, addActivity, settings, properties
     } = useApp();
 
-    const [searchTerm, setSearchTerm] = useState('');
-    const [filterType, setFilterType] = useState('all');
-    const [filterCategory, setFilterCategory] = useState('Todas');
-    const [filterStatus, setFilterStatus] = useState('all');
-    const [startDate, setStartDate] = useState('');
-    const [endDate, setEndDate] = useState('');
-    const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
+    const {
+        isSidebarOpen: isFilterPanelOpen,
+        setIsSidebarOpen: setIsFilterPanelOpen,
+        searchTerm, setSearchTerm,
+        dateFilter, setDateFilter,
+        advancedFilters: filters,
+        updateAdvancedFilter,
+        filteredData: filteredTransactions,
+        resetFilters
+    } = useTacticalFilter<Transaction>({
+        data: transactions,
+        searchFields: ['description', 'entity'],
+        customFilter: (t: any, term) => {
+            // Add custom searchable logic if needed
+            return false;
+        }
+    });
+
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingId, setEditingId] = useState<number | null>(null);
     const [form, setForm] = useState<{
@@ -56,20 +69,9 @@ export const FinancePage = () => {
     const categories = useMemo(() => ['Todas', ...new Set([...AGRICULTURAL_CATEGORIES, ...transactions.map(t => t.category)])].sort(), [transactions, AGRICULTURAL_CATEGORIES]);
     const categoriesForForm = useMemo(() => categories.filter(c => c !== 'Todas'), [categories]);
 
-    const filteredTransactions = useMemo(() => {
-        return transactions.filter(t => {
-            const matchesSearch = t.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                t.entity.toLowerCase().includes(searchTerm.toLowerCase());
-            const matchesType = filterType === 'all' || t.type === filterType;
-            const matchesCategory = filterCategory === 'Todas' || t.category === filterCategory;
-            const matchesStatus = filterStatus === 'all' || t.status === filterStatus;
-
-            const tDate = new Date(t.date);
-            const matchesStart = !startDate || tDate >= new Date(startDate);
-            const matchesEnd = !endDate || tDate <= new Date(endDate);
-
-            return matchesSearch && matchesType && matchesCategory && matchesStatus && matchesStart && matchesEnd;
-        }).sort((a, b) => {
+    // Sorting logic integrated into useMemo
+    const sortedTransactions = useMemo(() => {
+        return [...filteredTransactions].sort((a, b) => {
             if (sortBy === 'date-desc') return new Date(b.date).getTime() - new Date(a.date).getTime();
             if (sortBy === 'date-asc') return new Date(a.date).getTime() - new Date(b.date).getTime();
             if (sortBy === 'amount-desc') return b.amount - a.amount;
@@ -77,7 +79,7 @@ export const FinancePage = () => {
             if (sortBy === 'name-asc') return a.description.localeCompare(b.description);
             return 0;
         });
-    }, [transactions, searchTerm, filterType, filterCategory, filterStatus, startDate, endDate, sortBy]);
+    }, [filteredTransactions, sortBy]);
 
     const stats = useMemo(() => {
         const income = filteredTransactions.filter(t => t.type === 'income').reduce((acc, curr) => acc + curr.amount, 0);
@@ -166,7 +168,7 @@ export const FinancePage = () => {
     return (
         <div className="animate-fade-in space-y-6 h-full flex flex-col p-2 overflow-y-auto custom-scrollbar pb-10">
             {/* FINANCIAL SENTINEL COMMAND CENTER */}
-            <div className="flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-6 bg-slate-900/40 p-8 rounded-[1.5rem] md:rounded-[2.5rem] border border-slate-800/60 shadow-2xl backdrop-blur-xl relative overflow-hidden group">
+            <div className="flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-6 bg-slate-900/40 p-8 rounded-none border border-slate-800/60 shadow-2xl backdrop-blur-md relative overflow-hidden group">
                 <div className="absolute top-0 left-0 w-1.5 h-full bg-amber-500 z-20" />
 
                 <div className="relative z-10">
@@ -243,65 +245,95 @@ export const FinancePage = () => {
             </div>
 
             {/* SCANNER & FILTERS */}
-            {isFilterPanelOpen && (
-                <div className="bg-slate-950/80 border border-slate-900 p-8 rounded-[2.5rem] mb-6 animate-in slide-in-from-top-4 duration-500 backdrop-blur-xl shadow-2xl relative overflow-hidden">
-                    <div className="absolute top-0 left-0 w-1.5 h-full bg-amber-500/50 z-20" />
-
-                    <div className="space-y-8">
-                        <div>
-                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2 ml-1 mb-4 italic">
-                                <Search size={12} className="text-amber-500" /> Scanner de Varredura Financeira
-                            </label>
-                            <div className="relative group">
-                                <input
-                                    type="text"
-                                    placeholder="FILTRAR POR DESCRIÇÃO OU ENTIDADE..."
-                                    className="w-full bg-slate-900/50 border border-slate-800 py-5 px-8 rounded-2xl text-xs font-black uppercase tracking-widest text-white outline-none focus:border-amber-500/50 transition-all italic placeholder:text-slate-800"
-                                    value={searchTerm}
-                                    onChange={e => setSearchTerm(e.target.value)}
-                                />
-                                <div className="absolute right-8 top-1/2 -translate-y-1/2 opacity-20 group-focus-within:opacity-100 transition-opacity pointer-events-none">
-                                    <Zap size={18} className="text-amber-500" />
-                                </div>
-                            </div>
+            <TacticalFilterBlade
+                isOpen={isFilterPanelOpen}
+                onClose={() => setIsFilterPanelOpen(false)}
+                searchTerm={searchTerm}
+                onSearchChange={setSearchTerm}
+                onReset={resetFilters}
+                progress={(filteredTransactions.length / Math.max(transactions.length, 1)) * 100}
+                metrics={[
+                    { label: 'LANÇAMENTOS IDENTIFICADOS', value: filteredTransactions.length.toString().padStart(3, '0') },
+                    { label: 'SALDO DO PERÍODO', value: stats.balance, isCurrency: true }
+                ]}
+            >
+                {/* SECTOR: FLUXO */}
+                <div className="space-y-6">
+                    <h4 className="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em] flex items-center gap-2 border-l-2 border-amber-500 pl-3">
+                        VETOR DE FLUXO E STATUS
+                    </h4>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <label className="text-[8px] font-black text-slate-600 uppercase tracking-widest mb-1 block">TIPO</label>
+                            <select
+                                value={filters.type || 'all'}
+                                onChange={e => updateAdvancedFilter('type', e.target.value)}
+                                className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-xs font-bold text-slate-300 outline-none focus:border-amber-500/50 appearance-none cursor-pointer"
+                            >
+                                <option value="all">Todas as Direções</option>
+                                <option value="income">Receitas (+)</option>
+                                <option value="expense">Despesas (-)</option>
+                            </select>
                         </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                            <div className="space-y-2">
-                                <p className="text-[9px] font-black text-slate-600 uppercase tracking-widest ml-1 italic">Vetor de Fluxo</p>
-                                <select value={filterType} onChange={e => setFilterType(e.target.value)} className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-xs font-bold text-slate-300 outline-none focus:border-amber-500/50 appearance-none cursor-pointer">
-                                    <option value="all">Todas as Direções</option><option value="income">Receitas (+)</option><option value="expense">Despesas (-)</option>
-                                </select>
-                            </div>
-                            <div className="space-y-2">
-                                <p className="text-[9px] font-black text-slate-600 uppercase tracking-widest ml-1 italic">Segmento de Custo</p>
-                                <select value={filterCategory} onChange={e => setFilterCategory(e.target.value)} className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-xs font-bold text-slate-300 outline-none focus:border-amber-500/50 appearance-none cursor-pointer">
-                                    {categories.map(c => <option key={c} value={c}>{c}</option>)}
-                                </select>
-                            </div>
-                            <div className="space-y-2">
-                                <p className="text-[9px] font-black text-slate-600 uppercase tracking-widest ml-1 italic">Status de Liquidação</p>
-                                <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-xs font-bold text-slate-300 outline-none focus:border-amber-500/50 appearance-none cursor-pointer">
-                                    <option value="all">Todos os Estados</option><option value="paid">Finalizado / Pago</option><option value="pending">Aguardando / Pendente</option>
-                                </select>
-                            </div>
-                            <div className="space-y-2">
-                                <p className="text-[9px] font-black text-slate-600 uppercase tracking-widest ml-1 italic">Período Fiscal</p>
-                                <div className="flex gap-2">
-                                    <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-3 py-3 text-[10px] font-bold text-slate-400 outline-none focus:border-amber-500/50" />
-                                    <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-3 py-3 text-[10px] font-bold text-slate-400 outline-none focus:border-amber-500/50" />
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="flex justify-end gap-6 pt-4 border-t border-slate-900">
-                            <button onClick={() => { setSearchTerm(''); setFilterType('all'); setFilterCategory('Todas'); setFilterStatus('all'); setStartDate(''); setEndDate(''); }} className="text-[10px] font-black text-slate-600 hover:text-rose-400 uppercase tracking-widest transition-all italic flex items-center gap-2">
-                                <RefreshCw size={12} /> Resetar Varredura
-                            </button>
+                        <div className="space-y-2">
+                            <label className="text-[8px] font-black text-slate-600 uppercase tracking-widest mb-1 block">STATUS</label>
+                            <select
+                                value={filters.status || 'all'}
+                                onChange={e => updateAdvancedFilter('status', e.target.value)}
+                                className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-xs font-bold text-slate-300 outline-none focus:border-amber-500/50 appearance-none cursor-pointer"
+                            >
+                                <option value="all">Todos os Estados</option>
+                                <option value="paid">Finalizado / Pago</option>
+                                <option value="pending">Aguardando / Pendente</option>
+                            </select>
                         </div>
                     </div>
                 </div>
-            )}
+
+                {/* SECTOR: CATEGORIA */}
+                <div className="space-y-6">
+                    <h4 className="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em] flex items-center gap-2 border-l-2 border-cyan-500 pl-3">
+                        SEGMENTO DE CUSTO
+                    </h4>
+                    <div className="space-y-2">
+                        <label className="text-[8px] font-black text-slate-600 uppercase tracking-widest mb-1 block">SELECIONAR CATEGORIA</label>
+                        <select
+                            value={filters.category || 'Todas'}
+                            onChange={e => updateAdvancedFilter('category', e.target.value)}
+                            className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-xs font-bold text-slate-300 outline-none focus:border-amber-500/50 appearance-none cursor-pointer"
+                        >
+                            {categories.map(c => <option key={c} value={c}>{c}</option>)}
+                        </select>
+                    </div>
+                </div>
+
+                {/* SECTOR: PERÍODO */}
+                <div className="space-y-6">
+                    <h4 className="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em] flex items-center gap-2 border-l-2 border-emerald-500 pl-3">
+                        PERÍODO FISCAL
+                    </h4>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <label className="text-[8px] font-black text-slate-600 uppercase tracking-widest mb-1 block">DATA INICIAL</label>
+                            <input
+                                type="date"
+                                value={dateFilter.start}
+                                onChange={e => setDateFilter(prev => ({ ...prev, start: e.target.value }))}
+                                className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-3 text-[10px] font-bold text-slate-400 outline-none focus:border-amber-500/50"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-[8px] font-black text-slate-600 uppercase tracking-widest mb-1 block">DATA FINAL</label>
+                            <input
+                                type="date"
+                                value={dateFilter.end}
+                                onChange={e => setDateFilter(prev => ({ ...prev, end: e.target.value }))}
+                                className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-3 text-[10px] font-bold text-slate-400 outline-none focus:border-amber-500/50"
+                            />
+                        </div>
+                    </div>
+                </div>
+            </TacticalFilterBlade>
 
             {/* MAIN CONTENT AREA: ANALYTICS + LEDGER */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -320,7 +352,7 @@ export const FinancePage = () => {
                     </div>
 
                     <div className="space-y-3">
-                        {filteredTransactions.map((t, idx) => (
+                        {sortedTransactions.map((t, idx) => (
                             <div
                                 key={t.id}
                                 className="bg-slate-950/40 border border-slate-900/60 p-5 rounded-[1.5rem] flex flex-col md:flex-row justify-between items-start md:items-center gap-6 hover:bg-slate-900/40 hover:border-slate-800 transition-all group relative overflow-hidden"

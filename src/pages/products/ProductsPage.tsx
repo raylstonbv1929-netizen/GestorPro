@@ -15,7 +15,8 @@ import { AuditForm } from './components/AuditForm';
 import { StockStats } from './components/StockStats';
 import { MovementsLedger } from './components/MovementsLedger';
 import { QuickAdjustPopover } from './components/QuickAdjustPopover';
-import { AdvancedFilters, FilterCriteria } from './components/AdvancedFilters';
+import { TacticalFilterBlade } from '../../components/common/TacticalFilterBlade';
+import { useTacticalFilter } from '../../hooks/useTacticalFilter';
 import { ProductHistoryDrawer } from './components/ProductHistoryDrawer';
 import { BulkAuditForm } from './components/BulkAuditForm';
 
@@ -26,11 +27,40 @@ export const ProductsPage = () => {
         collaborators, properties, plots
     } = useApp();
 
-    const [searchTerm, setSearchTerm] = useState('');
-    const [activeSubTab, setActiveSubTab] = useState('list'); // 'list' or 'movements'
+    const {
+        isSidebarOpen: isAdvancedFiltersOpen,
+        setIsSidebarOpen: setIsAdvancedFiltersOpen,
+        searchTerm, setSearchTerm,
+        dateFilter, setDateFilter,
+        advancedFilters, setAdvancedFilters,
+        updateAdvancedFilter,
+        filteredData: filteredProducts,
+        resetFilters
+    } = useTacticalFilter<Product>({
+        data: products,
+        searchFields: ['name', 'category', 'location', 'batch'],
+        customFilter: (p, term) => {
+            // Handle expiring status if search contains "vencendo"
+            if (term.toLowerCase() === 'vencendo') {
+                if (!p.expirationDate) return false;
+                const daysToExpiration = (new Date(p.expirationDate).getTime() - new Date().getTime()) / (1000 * 3600 * 24);
+                return daysToExpiration > 0 && daysToExpiration <= 30;
+            }
+            return false;
+        }
+    });
+
+    const categories = useMemo(() => [...new Set(products.map(p => p.category))].sort(), [products]);
+
+    const [productForm, setProductForm] = useState({
+        name: '', category: 'Fertilizantes', stock: '', unit: 'kg',
+        capacityUnit: '',
+        unitWeight: '', minStock: '', price: '', location: '', batch: '', expirationDate: ''
+    });
+
+    // State for others
+    const [activeSubTab, setActiveSubTab] = useState('list');
     const [isProductFormOpen, setIsProductFormOpen] = useState(false);
-    const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
-    const [isAdvancedFiltersOpen, setIsAdvancedFiltersOpen] = useState(false);
     const [editingProductId, setEditingProductId] = useState<number | null>(null);
     const [activeFormZone, setActiveFormZone] = useState(1);
     const [quickAdjustProduct, setQuickAdjustProduct] = useState<Product | null>(null);
@@ -40,61 +70,6 @@ export const ProductsPage = () => {
     const [isBulkEntryOpen, setIsBulkEntryOpen] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [productIdToDelete, setProductIdToDelete] = useState<number | null>(null);
-
-    const initialFilters: FilterCriteria = {
-        categories: [],
-        status: [],
-        minPrice: '',
-        maxPrice: '',
-        minStock: '',
-        maxStock: '',
-        expirationWindow: null
-    };
-
-    const [advancedFilters, setAdvancedFilters] = useState<FilterCriteria>(initialFilters);
-
-    const [productForm, setProductForm] = useState({
-        name: '', category: 'Fertilizantes', stock: '', unit: 'kg',
-        capacityUnit: '',
-        unitWeight: '', minStock: '', price: '', location: '', batch: '', expirationDate: ''
-    });
-
-    const filteredProducts = useMemo(() => {
-        return products.filter(p => {
-            const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                p.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                (p.location && p.location.toLowerCase().includes(searchTerm.toLowerCase())) ||
-                (p.batch && p.batch.toLowerCase().includes(searchTerm.toLowerCase()));
-
-            const matchesCategory = advancedFilters.categories.length === 0 || advancedFilters.categories.includes(p.category);
-
-            const matchesStatus = advancedFilters.status.length === 0 || advancedFilters.status.some(s => {
-                if (s === 'ok') return p.status === 'ok';
-                if (s === 'low') return p.status === 'low';
-                if (s === 'critical') return p.status === 'critical';
-                if (s === 'expiring') {
-                    if (!p.expirationDate) return false;
-                    const daysToExpiration = (new Date(p.expirationDate).getTime() - new Date().getTime()) / (1000 * 3600 * 24);
-                    return daysToExpiration > 0 && daysToExpiration <= 30;
-                }
-                return true;
-            });
-
-            const matchesPrice = (advancedFilters.minPrice === '' || p.price >= parseValue(advancedFilters.minPrice)) &&
-                (advancedFilters.maxPrice === '' || p.price <= parseValue(advancedFilters.maxPrice));
-
-            const matchesStock = (advancedFilters.minStock === '' || p.stock >= parseValue(advancedFilters.minStock)) &&
-                (advancedFilters.maxStock === '' || p.stock <= parseValue(advancedFilters.maxStock));
-
-            const matchesExpirationWindow = advancedFilters.expirationWindow === null || (() => {
-                if (!p.expirationDate) return false;
-                const daysToExpiration = (new Date(p.expirationDate).getTime() - new Date().getTime()) / (1000 * 3600 * 24);
-                return daysToExpiration > 0 && daysToExpiration <= advancedFilters.expirationWindow;
-            })();
-
-            return matchesSearch && matchesCategory && matchesStatus && matchesPrice && matchesStock && matchesExpirationWindow;
-        });
-    }, [products, searchTerm, advancedFilters]);
 
     const stats = useMemo(() => {
         const totalItems = products.length;
@@ -252,7 +227,7 @@ export const ProductsPage = () => {
     return (
         <div className="animate-fade-in space-y-6 h-full flex flex-col p-2 overflow-y-auto custom-scrollbar pb-10">
             {/* PRODUCT SENTINEL COMMAND CENTER */}
-            <div className="flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-6 bg-slate-900/40 p-8 rounded-[1.5rem] md:rounded-[2.5rem] border border-slate-800/60 shadow-2xl backdrop-blur-xl relative overflow-hidden group">
+            <div className="flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-6 bg-slate-900/40 p-8 rounded-[1.5rem] md:rounded-[2.5rem] border border-slate-800/60 shadow-2xl backdrop-blur-md relative overflow-hidden group">
                 <div className="absolute top-0 left-0 w-1.5 h-full bg-emerald-500 z-20" />
 
                 <div className="relative z-10 flex items-center gap-6">
@@ -313,7 +288,7 @@ export const ProductsPage = () => {
                         <div className="flex gap-3">
                             <button
                                 onClick={() => setIsAdvancedFiltersOpen(true)}
-                                className={`px-6 rounded-2xl border transition-all flex items-center gap-3 text-[10px] font-black uppercase tracking-widest ${Object.values(advancedFilters).some(v => Array.isArray(v) ? v.length > 0 : v !== '' && v !== null) ? 'bg-emerald-500/10 border-emerald-500 text-emerald-400' : 'bg-slate-950 border-slate-800 text-slate-500 hover:text-white'}`}
+                                className={`px-6 rounded-2xl border transition-all flex items-center gap-3 text-[10px] font-black uppercase tracking-widest ${Object.values(advancedFilters).some(v => v !== 'all' && v !== '') ? 'bg-emerald-500/10 border-emerald-500 text-emerald-400' : 'bg-slate-950 border-slate-800 text-slate-500 hover:text-white'}`}
                             >
                                 <SlidersHorizontal size={18} /> FILTROS
                             </button>
@@ -332,17 +307,7 @@ export const ProductsPage = () => {
                         </div>
                     </div>
 
-                    {/* Filter Chips */}
-                    {Object.values(advancedFilters).some(v => Array.isArray(v) ? v.length > 0 : v !== '' && v !== null) && (
-                        <div className="flex flex-wrap gap-2 animate-fade-in px-2">
-                            {advancedFilters.categories.map(cat => (
-                                <span key={cat} className="px-3 py-1.5 bg-emerald-500/5 border border-emerald-500/20 rounded-lg text-[8px] font-black text-emerald-400 uppercase tracking-widest flex items-center gap-2 italic">
-                                    {cat} <CloseIcon size={10} className="cursor-pointer hover:text-white" onClick={() => setAdvancedFilters({ ...advancedFilters, categories: advancedFilters.categories.filter(c => c !== cat) })} />
-                                </span>
-                            ))}
-                            <button onClick={() => setAdvancedFilters(initialFilters)} className="text-[9px] font-black text-slate-600 hover:text-rose-500 uppercase tracking-widest transition-colors ml-2 italic underline underline-offset-4">Resetar Filtros</button>
-                        </div>
-                    )}
+                    {/* Filter Chips removed in favor of TacticalFilterBlade consistency */}
 
                     {/* PRODUCT GRID */}
                     <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-6 md:gap-8 pb-20">
@@ -406,13 +371,87 @@ export const ProductsPage = () => {
                 />
             )}
 
-            <AdvancedFilters
+            <TacticalFilterBlade
                 isOpen={isAdvancedFiltersOpen}
                 onClose={() => setIsAdvancedFiltersOpen(false)}
-                filters={advancedFilters}
-                setFilters={setAdvancedFilters}
-                onClear={() => setAdvancedFilters(initialFilters)}
-            />
+                searchTerm={searchTerm}
+                onSearchChange={setSearchTerm}
+                onReset={resetFilters}
+                progress={(filteredProducts.length / Math.max(products.length, 1)) * 100}
+                metrics={[
+                    { label: 'ATIVOS EM CATÁLOGO', value: filteredProducts.length.toString().padStart(3, '0') },
+                    { label: 'VALOR EM ESTOQUE', value: stats.totalStockValue, isCurrency: true }
+                ]}
+            >
+                {/* SECTOR: CATEGORIA */}
+                <div className="space-y-6">
+                    <h4 className="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em] flex items-center gap-2 border-l-2 border-emerald-500 pl-3">
+                        SEGMENTAÇÃO TÉCNICA
+                    </h4>
+                    <div className="space-y-2">
+                        <label className="text-[8px] font-black text-slate-600 uppercase tracking-widest mb-1 block">CATEGORIA DO INSUMO</label>
+                        <select
+                            value={advancedFilters.category || 'all'}
+                            onChange={e => updateAdvancedFilter('category', e.target.value)}
+                            className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-xs font-bold text-slate-300 outline-none focus:border-emerald-500/50 appearance-none cursor-pointer"
+                        >
+                            <option value="all">Todas as Categorias</option>
+                            {categories.map(c => <option key={c} value={c}>{c}</option>)}
+                        </select>
+                    </div>
+                </div>
+
+                {/* SECTOR: STATUS FINANCEIRO/ESTOQUE */}
+                <div className="space-y-6">
+                    <h4 className="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em] flex items-center gap-2 border-l-2 border-amber-500 pl-3">
+                        MÉTRICAS DE CONTROLE
+                    </h4>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <label className="text-[8px] font-black text-slate-600 uppercase tracking-widest mb-1 block">PREÇO MÍNIMO</label>
+                            <input
+                                type="text"
+                                placeholder="0,00"
+                                value={advancedFilters.price_min || ''}
+                                onChange={e => updateAdvancedFilter('price_min', e.target.value)}
+                                className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-xs font-bold text-white outline-none focus:border-emerald-500/50"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-[8px] font-black text-slate-600 uppercase tracking-widest mb-1 block">PREÇO MÁXIMO</label>
+                            <input
+                                type="text"
+                                placeholder="99.999"
+                                value={advancedFilters.price_max || ''}
+                                onChange={e => updateAdvancedFilter('price_max', e.target.value)}
+                                className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-xs font-bold text-white outline-none focus:border-emerald-500/50"
+                            />
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <label className="text-[8px] font-black text-slate-600 uppercase tracking-widest mb-1 block">ESTOQUE MÍNIMO</label>
+                            <input
+                                type="text"
+                                placeholder="0"
+                                value={advancedFilters.stock_min || ''}
+                                onChange={e => updateAdvancedFilter('stock_min', e.target.value)}
+                                className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-xs font-bold text-white outline-none focus:border-emerald-500/50"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-[8px] font-black text-slate-600 uppercase tracking-widest mb-1 block">ESTOQUE MÁXIMO</label>
+                            <input
+                                type="text"
+                                placeholder="999.999"
+                                value={advancedFilters.stock_max || ''}
+                                onChange={e => updateAdvancedFilter('stock_max', e.target.value)}
+                                className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-xs font-bold text-white outline-none focus:border-emerald-500/50"
+                            />
+                        </div>
+                    </div>
+                </div>
+            </TacticalFilterBlade>
 
             {historyProduct && (
                 <ProductHistoryDrawer

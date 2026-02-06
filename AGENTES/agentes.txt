@@ -1,33 +1,35 @@
 -- AGENTES (ESPECIALISTAS) --
-Backend: Lógica de servidor, APIs e regras.
-Archaeologist: Analisa e mapeia código antigo/legado.
-DB-Architect: Modelagem de dados e SQL.
-Debugger: Corrige erros e bugs rapidamente.
-DevOps: Deploy, infra e automação.
-Doc-Writer: Documentação e manuais.
-Explorer: Pesquisa de novas tecnologias.
-Frontend: Interface e UX/UI.
-Game-Dev: Lógica e mecânica de jogos.
-Mobile: Apps iOS e Android.
-Orchestrator: Gere múltiplos agentes/tarefas.
-Pen-Tester: Busca brechas de invasão.
-Perf-Optimizer: Melhora velocidade e recursos.
-Product-Mgr: Requisitos e visão do produto.
-Proj-Planner: Cronograma e escopo.
-QA-Auto: Scripts de teste automático.
-Security: Auditoria e boas práticas. 
-SEO-Spec: Otimização de busca.
-Test-Eng: Testes manuais e qualidade.
+
+Backend: Lógica de servidor, APIs e regras. (Crie uma API em Node.js para cadastro de usuários) 
+Archaeologist: Analisa e mapeia código antigo/legado. (Explique esse código antigo e diga como melhorar)
+DB-Architect: Modelagem de dados e SQL. (Crie um banco de dados para sistema de hotel)
+Debugger: Corrige erros e bugs rapidamente. (Ache o erro nesse código e conserte)
+DevOps: Deploy, infra e automação. (Configure deploy automático no GitHub com Vercel)
+Doc-Writer: Documentação e manuais. (Crie a documentação dessa API)
+Explorer: Pesquisa de novas tecnologias. (Quais as melhores tecnologias pra 2026?)
+Frontend: Interface e UX/UI. (Crie uma tela de login moderna em HTML/CSS)
+Game-Dev: Lógica e mecânica de jogos. (Crie sistema de pontuação pra jogo 2D)
+Mobile: Apps iOS e Android. (Faça um app simples de lista de tarefas)
+Orchestrator: Gere múltiplos agentes/tarefas. (Organize esse projeto usando vários agentes)
+Pen-Tester: Busca brechas de invasão. (Teste esse site contra invasão)
+Perf-Optimizer: Melhora velocidade e recursos. (Deixe esse site mais rápido)
+Product-Mgr: Requisitos e visão do produto. (Defina as funções de um app de reservas)
+Proj-Planner: Cronograma e escopo. (Monte um plano de 3 meses pra esse sistema)
+QA-Auto: Scripts de teste automático. (Crie testes automáticos para login)
+Security: Auditoria e boas práticas. (Avalie a segurança desse sistema)
+SEO-Spec: Otimização de busca. (Otimize meu site pro Google)
+Test-Eng: Testes manuais e qualidade. (Crie roteiro de testes desse app)
 
 -- WORKFLOWS (PROCESSOS) --
-Brainstorm: Ideias e soluções.
-Create: Código novo ou novas features.
-Debug: Fluxo de correção de erros.
-Deploy: Envio para produção/servidor.
-Enhance: Refatoração e melhorias.
-Orchestrate: Coordena grandes entregas.
-Plan: Passo a passo antes de agir.
-Preview: Revisão antes da entrega.
-Status: Relatório de progresso.
-Test: Bateria de testes e validação.
-UI-UX-Max: Design e interface premium.
+
+Brainstorm: Ideias e soluções. (Me dê ideias pra um app de hotel)
+Create: Código novo ou novas features. (Crie um sistema de reservas)
+Debug: Fluxo de correção de erros. (Resolva esse erro no meu código)
+Deploy: Envio para produção/servidor. (Me ajude a publicar esse site)
+Enhance: Refatoração e melhorias. (Melhore esse código)
+Orchestrate: Coordena grandes entregas. (Organize todas as etapas desse projeto)
+Plan: Passo a passo antes de agir. (Monte o passo a passo pra criar esse app)
+Preview: Revisão antes da entrega. (Revise antes de entregar)
+Status: Relatório de progresso. (Me dê um relatório do projeto)
+Test: Bateria de testes e validação. (Teste todas as funções)
+UI-UX-Max: Design e interface premium. (Deixe a interface moderna e bonita)

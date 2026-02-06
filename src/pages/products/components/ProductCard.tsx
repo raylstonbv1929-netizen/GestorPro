@@ -26,7 +26,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     getCategoryStyles
 }) => {
     return (
-        <Card variant="glass" className="group p-0 border-slate-800/60 hover:border-emerald-500/40 transition-all duration-500 overflow-hidden rounded-[1.5rem] md:rounded-[2.5rem] flex flex-col relative shadow-xl">
+        <Card variant="default" className="group p-0 border-slate-800/60 hover:border-emerald-500/40 transition-all duration-300 overflow-hidden rounded-[1.5rem] md:rounded-[2.5rem] flex flex-col relative shadow-xl">
             <div className="absolute top-0 right-0 p-6 z-10 flex gap-2">
                 <button onClick={() => onDelete(prod.id)} className="text-slate-800 hover:text-rose-500 transition-colors opacity-0 group-hover:opacity-100"><Trash2 size={16} /></button>
             </div>

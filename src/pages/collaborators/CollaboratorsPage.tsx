@@ -7,14 +7,31 @@ import {
 import { useApp } from '../../contexts/AppContext';
 import { Card } from '../../components/common/Card';
 import { formatNumber, maskValue } from '../../utils/format';
+import { TacticalFilterBlade } from '../../components/common/TacticalFilterBlade';
+import { useTacticalFilter } from '../../hooks/useTacticalFilter';
+import { Collaborator } from '../../types';
 
 export const CollaboratorsPage = () => {
     const { collaborators, setCollaborators, addActivity } = useApp();
-    const [searchTerm, setSearchTerm] = useState('');
-    const [filter, setFilter] = useState('all');
+    const {
+        isSidebarOpen: isFilterPanelOpen,
+        setIsSidebarOpen: setIsFilterPanelOpen,
+        searchTerm, setSearchTerm,
+        dateFilter, setDateFilter,
+        advancedFilters, setAdvancedFilters,
+        updateAdvancedFilter,
+        filteredData: filteredCollaborators,
+        resetFilters
+    } = useTacticalFilter<Collaborator>({
+        data: collaborators,
+        searchFields: ['name', 'role', 'department', 'email'],
+    });
+
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingId, setEditingId] = useState<number | null>(null);
-    const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
+
+    const roles = useMemo(() => [...new Set(collaborators.map(c => c.role))].sort(), [collaborators]);
+    const departments = useMemo(() => [...new Set(collaborators.map(c => c.department || 'GLOBAL'))].sort(), [collaborators]);
 
     const [formData, setFormData] = useState<{
         name: string;
@@ -38,15 +55,7 @@ export const CollaboratorsPage = () => {
         return { total, active, vacation, inactive, percent };
     }, [collaborators]);
 
-    const filteredCollaborators = useMemo(() => {
-        return collaborators.filter((c: any) => {
-            const matchesSearch = c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                c.role.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                c.department.toLowerCase().includes(searchTerm.toLowerCase());
-            const matchesFilter = filter === 'all' || c.status === filter;
-            return matchesSearch && matchesFilter;
-        });
-    }, [collaborators, searchTerm, filter]);
+    // Removal of filteredCollaborators useMemo as it's handled by useTacticalFilter
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -93,7 +102,7 @@ export const CollaboratorsPage = () => {
     return (
         <div className="animate-fade-in space-y-6 h-full flex flex-col p-2 overflow-y-auto custom-scrollbar pb-10">
             {/* COLLABORATOR SENTINEL COMMAND CENTER */}
-            <div className="flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-6 bg-slate-900/40 p-8 rounded-[1.5rem] md:rounded-[2.5rem] border border-slate-800/60 shadow-2xl backdrop-blur-xl relative overflow-hidden group">
+            <div className="flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-6 bg-slate-900/40 p-8 rounded-[1.5rem] md:rounded-[2.5rem] border border-slate-800/60 shadow-2xl backdrop-blur-md relative overflow-hidden group">
                 <div className="absolute top-0 left-0 w-1.5 h-full bg-indigo-500 z-20" />
 
                 <div className="relative z-10">
@@ -149,51 +158,74 @@ export const CollaboratorsPage = () => {
             </div>
 
             {/* SCANNER PANEL */}
-            {isFilterPanelOpen && (
-                <div className="bg-slate-950/80 border border-slate-900 p-8 rounded-[2.5rem] mb-6 animate-in slide-in-from-top-4 duration-500 backdrop-blur-xl shadow-2xl relative overflow-hidden">
-                    <div className="absolute top-0 left-0 w-1.5 h-full bg-indigo-500/50 z-20" />
+            <TacticalFilterBlade
+                isOpen={isFilterPanelOpen}
+                onClose={() => setIsFilterPanelOpen(false)}
+                searchTerm={searchTerm}
+                onSearchChange={setSearchTerm}
+                onReset={resetFilters}
+                progress={(filteredCollaborators.length / Math.max(collaborators.length, 1)) * 100}
+                metrics={[
+                    { label: 'ATIVOS RASTREADOS', value: filteredCollaborators.length.toString().padStart(2, '0') },
+                    { label: 'PRONTIDÃO', value: stats.percent.toFixed(0) + '%' }
+                ]}
+            >
+                {/* SECTOR: STATUS OPERACIONAL */}
+                <div className="space-y-6">
+                    <h4 className="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em] flex items-center gap-2 border-l-2 border-indigo-500 pl-3">
+                        DISPONIBILIDADE DO ATIVO
+                    </h4>
+                    <div className="space-y-2">
+                        <label className="text-[8px] font-black text-slate-600 uppercase tracking-widest mb-1 block">ESTADO ATUAL</label>
+                        <select
+                            value={advancedFilters.status || 'all'}
+                            onChange={e => updateAdvancedFilter('status', e.target.value)}
+                            className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-xs font-bold text-slate-300 outline-none focus:border-indigo-500/50 appearance-none cursor-pointer"
+                        >
+                            <option value="all">Ver Todos</option>
+                            <option value="active">Operativo / Ativo</option>
+                            <option value="vacation">Em Ciclo de Férias</option>
+                            <option value="inactive">Suspenso / Inativo</option>
+                        </select>
+                    </div>
+                </div>
 
-                    <div className="space-y-4">
-                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2 ml-1">
-                            <Search size={12} className="text-indigo-500" /> Scanner de Varredura Operacional (NOME/CARGO/SETOR)
-                        </label>
-
-                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
-                            <div className="lg:col-span-8">
-                                <div className="relative group h-full">
-                                    <input
-                                        type="text"
-                                        placeholder="FILTRAR CORPO TÉCNICO..."
-                                        className="w-full h-full bg-slate-900/50 border border-slate-800 py-4 px-6 rounded-2xl text-xs font-black uppercase tracking-widest text-white outline-none focus:border-indigo-500/50 transition-all italic placeholder:text-slate-800"
-                                        value={searchTerm}
-                                        onChange={e => setSearchTerm(e.target.value)}
-                                    />
-                                    <div className="absolute right-6 top-1/2 -translate-y-1/2 opacity-20 group-focus-within:opacity-100 transition-opacity pointer-events-none">
-                                        <Zap size={16} className="text-indigo-500" />
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="lg:col-span-4 flex gap-3 overflow-x-auto custom-scrollbar pb-2 lg:pb-0">
-                                {['all', 'active', 'vacation', 'inactive'].map(s => (
-                                    <button
-                                        key={s}
-                                        onClick={() => setFilter(s)}
-                                        className={`flex-1 px-4 py-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border whitespace-nowrap flex items-center justify-center ${filter === s ? 'bg-indigo-600 text-white border-indigo-400 shadow-lg' : 'bg-slate-900 border-slate-800 text-slate-500 hover:text-slate-200'}`}
-                                    >
-                                        {s === 'all' ? 'Ver Todos' : s === 'active' ? 'Ativos' : s === 'vacation' ? 'Férias' : 'Suspensos'}
-                                    </button>
-                                ))}
-                            </div>
+                {/* SECTOR: TÉCNICO */}
+                <div className="space-y-6">
+                    <h4 className="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em] flex items-center gap-2 border-l-2 border-emerald-500 pl-3">
+                        ESPECIFICAÇÕES TÉCNICAS
+                    </h4>
+                    <div className="grid grid-cols-1 gap-4">
+                        <div className="space-y-2">
+                            <label className="text-[8px] font-black text-slate-600 uppercase tracking-widest mb-1 block">CARGO / FUNÇÃO</label>
+                            <select
+                                value={advancedFilters.role || 'all'}
+                                onChange={e => updateAdvancedFilter('role', e.target.value)}
+                                className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-xs font-bold text-slate-300 outline-none focus:border-indigo-500/50 appearance-none cursor-pointer"
+                            >
+                                <option value="all">Todas as Funções</option>
+                                {roles.map(r => <option key={r} value={r}>{r}</option>)}
+                            </select>
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-[8px] font-black text-slate-600 uppercase tracking-widest mb-1 block">SETOR / DEPARTAMENTO</label>
+                            <select
+                                value={advancedFilters.department || 'all'}
+                                onChange={e => updateAdvancedFilter('department', e.target.value)}
+                                className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-xs font-bold text-slate-300 outline-none focus:border-indigo-500/50 appearance-none cursor-pointer"
+                            >
+                                <option value="all">Todos os Setores</option>
+                                {departments.map(d => <option key={d} value={d}>{d}</option>)}
+                            </select>
                         </div>
                     </div>
                 </div>
-            )}
+            </TacticalFilterBlade>
 
             {/* COLLABORATOR GRID */}
             <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-6 md:gap-8">
                 {filteredCollaborators.map((c: any) => (
-                    <Card key={c.id} variant="glass" className="group p-0 border-slate-800/60 hover:border-indigo-500/40 transition-all duration-500 overflow-hidden rounded-[1.5rem] md:rounded-[2.5rem] flex flex-col relative">
+                    <Card key={c.id} variant="default" className="group p-0 border-slate-800/60 hover:border-indigo-500/40 transition-all duration-300 overflow-hidden rounded-[1.5rem] md:rounded-[2.5rem] flex flex-col relative">
                         <div className="absolute top-0 right-0 p-6 z-10 flex gap-2">
                             <button onClick={() => handleDelete(c.id)} className="text-slate-700 hover:text-rose-500 transition-colors opacity-0 group-hover:opacity-100"><Trash2 size={16} /></button>
                         </div>
