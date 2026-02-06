@@ -319,7 +319,7 @@ export const FieldApplicationsPage = () => {
         }
 
         if (editingApplicationId) {
-            // Edição simples (um único talhão)
+            // EDIÇÃO TÉCNICA (SINGLE RECORD) - ATOMIC UPDATE
             const selectedPlot = plots.find(p => p.id === parseInt(formData.plotIds[0]));
             if (!selectedPlot) return;
 
@@ -334,10 +334,10 @@ export const FieldApplicationsPage = () => {
 
             const oldApp = fieldApplications.find(a => a.id === editingApplicationId);
             if (oldApp) {
-                // Logica de reversão de estoque e nova aplicação...
                 let updatedProducts = [...products];
                 let updatedMovements = [...stockMovements];
 
+                // 1. REVERSE PREVIOUS IMPACT
                 const oldMovs = updatedMovements.filter(m => m.appId === oldApp.id);
                 if (oldMovs.length > 0) {
                     oldMovs.forEach(mov => {
@@ -345,20 +345,20 @@ export const FieldApplicationsPage = () => {
                         if (pIdx !== -1) {
                             const p = updatedProducts[pIdx];
                             const stockChange = mov.type === 'out' ? mov.realChange : -mov.realChange;
-                            const newStock = p.stock + stockChange;
-                            updatedProducts[pIdx] = { ...p, stock: newStock };
+                            updatedProducts[pIdx] = { ...p, stock: p.stock + stockChange };
                         }
                     });
                     updatedMovements = updatedMovements.filter(m => m.appId !== oldApp.id);
                 }
 
+                // 2. APPLY NEW IMPACT (IF COMPLETED)
                 if (formData.status === 'completed') {
                     formData.appliedProducts.forEach((ap: any) => {
                         const pIdx = updatedProducts.findIndex(p => p.id === ap.productId);
                         if (pIdx !== -1) {
                             const p = updatedProducts[pIdx];
-                            const newStock = p.stock - ap.totalQuantity;
-                            updatedProducts[pIdx] = { ...p, stock: newStock };
+                            updatedProducts[pIdx] = { ...p, stock: p.stock - ap.totalQuantity };
+
                             const newMov: any = {
                                 id: Date.now() + Math.random(),
                                 productId: p.id,
@@ -1018,191 +1018,201 @@ export const FieldApplicationsPage = () => {
                                 </div>
 
                                 {/* ZONA_02: COMPOSIÇÃO DA CALDA */}
-                                <div className="lg:col-span-6 p-8 space-y-8 border-r border-slate-900/50">
-                                    <h4 className="text-[9px] font-black text-cyan-500 uppercase tracking-[0.3em] flex items-center gap-3 italic mb-4">
-                                        <div className="w-1 h-1 bg-cyan-500" /> 2. COMPOSIÇÃO DA CALDA
-                                    </h4>
-
-                                    <div className="grid grid-cols-2 gap-6 bg-slate-950 border border-slate-900 p-6 relative">
-                                        <div className="absolute -top-px -left-px w-2 h-2 border-t border-l border-cyan-500" />
-                                        <div className="space-y-4">
-                                            <div className="space-y-1.5 group/input">
-                                                <label className="text-[8px] text-slate-500 font-bold uppercase tracking-widest ml-1 flex items-center gap-2">
-                                                    <Gauge size={10} className="text-cyan-500/30 group-focus-within/input:text-cyan-500" /> VAZÃO DA CALDA (L/HA)
-                                                </label>
-                                                <input type="number" value={formData.sprayVolume} onChange={e => setFormData({ ...formData, sprayVolume: e.target.value })} placeholder="0.00" className="w-full bg-slate-900 border border-slate-800 rounded-none px-4 py-3 text-xs font-mono text-white outline-none focus:border-cyan-500/50 transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
-                                            </div>
-                                        </div>
-                                        <div className="space-y-4">
-                                            <div className="space-y-1.5 group/input">
-                                                <label className="text-[8px] text-slate-500 font-bold uppercase tracking-widest ml-1 flex items-center gap-2">
-                                                    <Target size={10} className="text-cyan-500/30 group-focus-within/input:text-cyan-500" /> ALVO (PRAGA/DOENÇA)
-                                                </label>
-                                                <input value={formData.target} onChange={e => setFormData({ ...formData, target: e.target.value.toUpperCase() })} placeholder="EX: FERRUGEM ASIÁTICA" className="w-full bg-slate-900 border border-slate-800 rounded-none px-4 py-3 text-xs font-mono text-white outline-none focus:border-cyan-500/50 transition-all italic" />
-                                            </div>
-                                        </div>
+                                <div className="lg:col-span-6 border-r border-slate-900/50 flex flex-col">
+                                    <div className="h-[280px] shrink-0">
+                                        <TankHUD
+                                            products={formData.appliedProducts}
+                                            area={parseFloat(formData.areaApplied || '0')}
+                                            sprayVolume={parseFloat(formData.sprayVolume || '0')}
+                                        />
                                     </div>
 
-                                    <div className="space-y-4">
-                                        <div className="bg-slate-950 border border-slate-900 p-6 space-y-6">
-                                            <div className="grid grid-cols-12 gap-3 items-end">
-                                                <div className="col-span-6 space-y-1.5">
-                                                    <label className="text-[8px] text-slate-500 font-bold uppercase tracking-widest ml-1">PRODUTO / INSUMO</label>
-                                                    <select ref={productSelectRef} value={currentProduct.productId} onChange={e => setCurrentProduct({ ...currentProduct, productId: e.target.value })} className="w-full bg-slate-900 border border-slate-800 rounded-none px-4 py-3 text-[10px] font-mono text-white outline-none focus:border-cyan-500/50 transition-all appearance-none uppercase">
-                                                        <option value="">SELECIONAR PRODUTO</option>
-                                                        {products.map(p => <option key={p.id} value={p.id} className="bg-slate-950 font-mono">{p.name.toUpperCase()} [ESTOQUE:{formatNumber(p.stock)}]</option>)}
-                                                    </select>
-                                                </div>
-                                                <div className="col-span-3 space-y-1.5">
-                                                    <label className="text-[8px] text-slate-500 font-bold uppercase tracking-widest ml-1">DOSE</label>
-                                                    <input
-                                                        ref={doseInputRef}
-                                                        type="number"
-                                                        step="0.001"
-                                                        value={currentProduct.dose}
-                                                        onChange={e => setCurrentProduct({ ...currentProduct, dose: e.target.value })}
-                                                        onKeyDown={(e) => {
-                                                            if (e.key === 'Enter') {
-                                                                e.preventDefault();
-                                                                handleAddProductToMix();
-                                                            }
-                                                        }}
-                                                        placeholder="0.000"
-                                                        className="w-full bg-slate-900 border border-slate-800 rounded-none px-4 py-3 text-xs font-mono text-white outline-none focus:border-cyan-500/50 transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                                                    />
-                                                </div>
-                                                <div className="col-span-2">
-                                                    <select className="w-full bg-slate-900 border border-slate-800 rounded-none px-3 py-3 text-[9px] font-mono text-white outline-none focus:border-cyan-500/50 appearance-none uppercase" value={currentProduct.unit || (products.find(p => p.id === parseInt(currentProduct.productId))?.unit || '')} onChange={e => setCurrentProduct({ ...currentProduct, unit: e.target.value })}>
-                                                        <option value="L">L</option><option value="ml">ML</option><option value="kg">KG</option><option value="g">G</option><option value="un">UN</option>
-                                                    </select>
-                                                </div>
-                                                <div className="col-span-1">
-                                                    <button type="button" onClick={handleAddProductToMix} className="w-full aspect-square bg-cyan-600/10 hover:bg-cyan-600 border border-cyan-500/30 hover:border-cyan-400 text-cyan-400 hover:text-white transition-all flex items-center justify-center active:scale-95 group/btn">
-                                                        <Plus size={18} strokeWidth={3} className="group-hover/btn:rotate-90 transition-transform" />
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div className="bg-slate-950/20 border border-slate-900/50 min-h-[220px] max-h-[300px] overflow-y-auto custom-scrollbar p-1">
-                                            <div className="space-y-1">
-                                                {formData.appliedProducts.map((p: any, i: number) => {
-                                                    const pAlert = stockAlerts.find((a: any) => a.id === p.productId);
-                                                    return (
-                                                        <div key={i} className={`flex items-center justify-between p-3 border-l-2 transition-all ${pAlert ? 'bg-rose-500/5 border-rose-500/50' : 'bg-slate-900/30 border-slate-800 hover:bg-slate-900/60 hover:border-cyan-500/50'}`}>
-                                                            <div className="min-w-0 flex-1 grid grid-cols-12 gap-4 items-center">
-                                                                <div className="col-span-6 flex items-center gap-3">
-                                                                    <div className={`w-1.5 h-1.5 ${pAlert ? 'bg-rose-500 shadow-[0_0_8px_#f43f5e]' : 'bg-cyan-500/40'}`} />
-                                                                    <p className="text-[10px] font-bold text-slate-300 uppercase italic truncate">{p.productName}</p>
-                                                                </div>
-                                                                <div className="col-span-3 text-right">
-                                                                    <p className="text-[9px] font-mono text-slate-500 uppercase">{p.dose} {p.doseUnit}/HA</p>
-                                                                </div>
-                                                                <div className="col-span-3 text-right">
-                                                                    <p className="text-[9px] font-mono text-cyan-400 font-bold uppercase">∑ {p.totalQuantity.toFixed(2)} {p.unit}</p>
-                                                                </div>
-                                                            </div>
-                                                            <div className="flex items-center gap-2 ml-4">
-                                                                {pAlert && <ShieldAlert size={12} className="text-rose-500 animate-pulse" />}
-                                                                <button type="button" onClick={() => removeProductFromMix(i)} className="p-2 text-slate-700 hover:text-rose-500 transition-all"><Trash2 size={12} /></button>
-                                                            </div>
-                                                        </div>
-                                                    );
-                                                })}
-                                                {formData.appliedProducts.length === 0 && (
-                                                    <div className="h-[200px] flex flex-col items-center justify-center opacity-20 italic">
-                                                        <Layers size={24} className="mb-3 text-slate-600" />
-                                                        <span className="text-[8px] font-bold uppercase tracking-[0.4em] text-slate-500 text-center">Aguardando adição de produtos</span>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* ZONA_03: INFORMAÇÕES DE OPERAÇÃO */}
-                                <div className="lg:col-span-3 p-8 space-y-8 bg-slate-950/50">
-                                    <div className="space-y-6">
+                                    <div className="p-8 space-y-8 overflow-y-auto flex-1 custom-scrollbar">
                                         <h4 className="text-[9px] font-black text-cyan-500 uppercase tracking-[0.3em] flex items-center gap-3 italic mb-4">
-                                            <div className="w-1 h-1 bg-cyan-500" /> 3. INFORMAÇÕES DE OPERAÇÃO
+                                            <div className="w-1 h-1 bg-cyan-500" /> 2. PARÂMETROS TÉCNICOS DA CALDA
                                         </h4>
-                                        <div className="space-y-6">
-                                            <div className="space-y-2 group/input">
-                                                <label className="text-[9px] text-slate-500 font-bold uppercase tracking-widest ml-1 flex justify-between">
-                                                    <span>OPERADOR / RESPONSÁVEL</span>
-                                                    <User size={10} className="text-slate-700 group-focus-within/input:text-cyan-500" />
-                                                </label>
-                                                <select value={formData.operator} onChange={e => setFormData({ ...formData, operator: e.target.value })} className="w-full bg-slate-900/50 border border-slate-900 rounded-none px-4 py-3 text-xs font-mono text-white outline-none focus:border-cyan-500/50 transition-all appearance-none uppercase">
-                                                    <option value="">NÃO ATRIBUÍDO</option>
-                                                    {collaborators.map(c => <option key={c.id} value={c.name} className="bg-slate-950 font-mono">{c.name.toUpperCase()}</option>)}
-                                                </select>
-                                            </div>
 
-                                            <div className="space-y-2 group/input">
-                                                <label className="text-[9px] text-slate-500 font-bold uppercase tracking-widest ml-1 flex justify-between">
-                                                    <span>MÁQUINA / EQUIPAMENTO</span>
-                                                    <Activity size={10} className="text-slate-700 group-focus-within/input:text-cyan-500" />
-                                                </label>
-                                                <input placeholder="EX: TRATOR JD 6125J" value={formData.equipment} onChange={e => setFormData({ ...formData, equipment: e.target.value.toUpperCase() })} className="w-full bg-slate-900/50 border border-slate-900 rounded-none px-4 py-3 text-xs font-mono text-white outline-none focus:border-cyan-500/50 transition-all placeholder:text-slate-800" />
-                                            </div>
-
-                                            {/* INSTRUMENTOS METEOROLÓGICOS */}
-                                            <div className="grid grid-cols-2 gap-px bg-slate-900 border border-slate-900 overflow-hidden">
-                                                <div className="bg-slate-950 p-4 space-y-2">
-                                                    <label className="text-[7px] text-slate-500 font-bold uppercase tracking-widest flex items-center gap-2">
-                                                        <Thermometer size={10} className="text-rose-500/50" /> TEMPERATURA
+                                        <div className="grid grid-cols-2 gap-6 bg-slate-950 border border-slate-900 p-6 relative">
+                                            <div className="absolute -top-px -left-px w-2 h-2 border-t border-l border-cyan-500" />
+                                            <div className="space-y-4">
+                                                <div className="space-y-1.5 group/input">
+                                                    <label className="text-[8px] text-slate-500 font-bold uppercase tracking-widest ml-1 flex items-center gap-2">
+                                                        <Gauge size={10} className="text-cyan-500/30 group-focus-within/input:text-cyan-500" /> VAZÃO DA CALDA (L/HA)
                                                     </label>
-                                                    <div className="flex items-end gap-1">
-                                                        <input type="number" value={formData.weather.temp} onChange={e => setFormData({ ...formData, weather: { ...formData.weather, temp: e.target.value } })} className="w-full bg-transparent text-lg font-mono font-black text-white outline-none" placeholder="00" />
-                                                        <span className="text-[9px] text-slate-700 font-bold mb-1">°C</span>
-                                                    </div>
-                                                </div>
-                                                <div className="bg-slate-950 p-4 space-y-2">
-                                                    <label className="text-[7px] text-slate-500 font-bold uppercase tracking-widest flex items-center gap-2">
-                                                        <Droplet size={10} className="text-cyan-500/50" /> UMIDADE
-                                                    </label>
-                                                    <div className="flex items-end gap-1">
-                                                        <input type="number" value={formData.weather.humidity} onChange={e => setFormData({ ...formData, weather: { ...formData.weather, humidity: e.target.value } })} className="w-full bg-transparent text-lg font-mono font-black text-white outline-none" placeholder="00" />
-                                                        <span className="text-[9px] text-slate-700 font-bold mb-1">%</span>
-                                                    </div>
+                                                    <input type="number" value={formData.sprayVolume} onChange={e => setFormData({ ...formData, sprayVolume: e.target.value })} placeholder="0.00" className="w-full bg-slate-900 border border-slate-800 rounded-none px-4 py-3 text-xs font-mono text-white outline-none focus:border-cyan-500/50 transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
                                                 </div>
                                             </div>
+                                            <div className="space-y-4">
+                                                <div className="space-y-1.5 group/input">
+                                                    <label className="text-[8px] text-slate-500 font-bold uppercase tracking-widest ml-1 flex items-center gap-2">
+                                                        <Target size={10} className="text-cyan-500/30 group-focus-within/input:text-cyan-500" /> ALVO (PRAGA/DOENÇA)
+                                                    </label>
+                                                    <input value={formData.target} onChange={e => setFormData({ ...formData, target: e.target.value.toUpperCase() })} placeholder="EX: FERRUGEM ASIÁTICA" className="w-full bg-slate-900 border border-slate-800 rounded-none px-4 py-3 text-xs font-mono text-white outline-none focus:border-cyan-500/50 transition-all italic" />
+                                                </div>
+                                            </div>
+                                        </div>
 
-                                            <div className="space-y-2">
-                                                <label className="text-[9px] text-slate-500 font-bold uppercase tracking-widest ml-1">OBSERVAÇÕES GERAIS</label>
-                                                <textarea rows={5} value={formData.observations} onChange={e => setFormData({ ...formData, observations: e.target.value })} className="w-full bg-slate-900/50 border border-slate-900 rounded-none px-4 py-4 text-[9px] font-mono text-slate-400 outline-none focus:border-cyan-500/50 transition-all placeholder:text-slate-800 custom-scrollbar resize-none" placeholder="Relatar anomalias ou observações técnicas..." />
+                                        <div className="space-y-4">
+                                            <div className="bg-slate-950 border border-slate-900 p-6 space-y-6">
+                                                <div className="grid grid-cols-12 gap-3 items-end">
+                                                    <div className="col-span-6 space-y-1.5">
+                                                        <label className="text-[8px] text-slate-500 font-bold uppercase tracking-widest ml-1">PRODUTO / INSUMO</label>
+                                                        <select ref={productSelectRef} value={currentProduct.productId} onChange={e => setCurrentProduct({ ...currentProduct, productId: e.target.value })} className="w-full bg-slate-900 border border-slate-800 rounded-none px-4 py-3 text-[10px] font-mono text-white outline-none focus:border-cyan-500/50 transition-all appearance-none uppercase">
+                                                            <option value="">SELECIONAR PRODUTO</option>
+                                                            {products.map(p => <option key={p.id} value={p.id} className="bg-slate-950 font-mono">{p.name.toUpperCase()} [ESTOQUE:{formatNumber(p.stock)}]</option>)}
+                                                        </select>
+                                                    </div>
+                                                    <div className="col-span-3 space-y-1.5">
+                                                        <label className="text-[8px] text-slate-500 font-bold uppercase tracking-widest ml-1">DOSE</label>
+                                                        <input
+                                                            ref={doseInputRef}
+                                                            type="number"
+                                                            step="0.001"
+                                                            value={currentProduct.dose}
+                                                            onChange={e => setCurrentProduct({ ...currentProduct, dose: e.target.value })}
+                                                            onKeyDown={(e) => {
+                                                                if (e.key === 'Enter') {
+                                                                    e.preventDefault();
+                                                                    handleAddProductToMix();
+                                                                }
+                                                            }}
+                                                            placeholder="0.000"
+                                                            className="w-full bg-slate-900 border border-slate-800 rounded-none px-4 py-3 text-xs font-mono text-white outline-none focus:border-cyan-500/50 transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                                        />
+                                                    </div>
+                                                    <div className="col-span-2">
+                                                        <select className="w-full bg-slate-900 border border-slate-800 rounded-none px-3 py-3 text-[9px] font-mono text-white outline-none focus:border-cyan-500/50 appearance-none uppercase" value={currentProduct.unit || (products.find(p => p.id === parseInt(currentProduct.productId))?.unit || '')} onChange={e => setCurrentProduct({ ...currentProduct, unit: e.target.value })}>
+                                                            <option value="L">L</option><option value="ml">ML</option><option value="kg">KG</option><option value="g">G</option><option value="un">UN</option>
+                                                        </select>
+                                                    </div>
+                                                    <div className="col-span-1">
+                                                        <button type="button" onClick={handleAddProductToMix} className="w-full aspect-square bg-cyan-600/10 hover:bg-cyan-600 border border-cyan-500/30 hover:border-cyan-400 text-cyan-400 hover:text-white transition-all flex items-center justify-center active:scale-95 group/btn">
+                                                            <Plus size={18} strokeWidth={3} className="group-hover/btn:rotate-90 transition-transform" />
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="bg-slate-950/20 border border-slate-900/50 min-h-[220px] max-h-[300px] overflow-y-auto custom-scrollbar p-1">
+                                                <div className="space-y-1">
+                                                    {formData.appliedProducts.map((p: any, i: number) => {
+                                                        const pAlert = stockAlerts.find((a: any) => a.id === p.productId);
+                                                        return (
+                                                            <div key={i} className={`flex items-center justify-between p-3 border-l-2 transition-all ${pAlert ? 'bg-rose-500/5 border-rose-500/50' : 'bg-slate-900/30 border-slate-800 hover:bg-slate-900/60 hover:border-cyan-500/50'}`}>
+                                                                <div className="min-w-0 flex-1 grid grid-cols-12 gap-4 items-center">
+                                                                    <div className="col-span-6 flex items-center gap-3">
+                                                                        <div className={`w-1.5 h-1.5 ${pAlert ? 'bg-rose-500 shadow-[0_0_8px_#f43f5e]' : 'bg-cyan-500/40'}`} />
+                                                                        <p className="text-[10px] font-bold text-slate-300 uppercase italic truncate">{p.productName}</p>
+                                                                    </div>
+                                                                    <div className="col-span-3 text-right">
+                                                                        <p className="text-[9px] font-mono text-slate-500 uppercase">{p.dose} {p.doseUnit}/HA</p>
+                                                                    </div>
+                                                                    <div className="col-span-3 text-right">
+                                                                        <p className="text-[9px] font-mono text-cyan-400 font-bold uppercase">∑ {p.totalQuantity.toFixed(2)} {p.unit}</p>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="flex items-center gap-2 ml-4">
+                                                                    {pAlert && <ShieldAlert size={12} className="text-rose-500 animate-pulse" />}
+                                                                    <button type="button" onClick={() => removeProductFromMix(i)} className="p-2 text-slate-700 hover:text-rose-500 transition-all"><Trash2 size={12} /></button>
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                    {formData.appliedProducts.length === 0 && (
+                                                        <div className="h-[200px] flex flex-col items-center justify-center opacity-20 italic">
+                                                            <Layers size={24} className="mb-3 text-slate-600" />
+                                                            <span className="text-[8px] font-bold uppercase tracking-[0.4em] text-slate-500 text-center">Aguardando adição de produtos</span>
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
-                                    {/* BATCH_PREVIEW: VISÃO DE DIVISÃO */}
-                                    {formData.plotIds.length > 1 && (
-                                        <div className="space-y-6 pt-8 border-t border-slate-900">
-                                            <h4 className="text-[9px] font-black text-orange-500 uppercase tracking-[0.3em] flex items-center gap-3 italic">
-                                                <div className="w-1 h-1 bg-orange-500" /> RESUMO DA DIVISÃO EM LOTE
-                                            </h4>
-                                            <div className="bg-slate-900/30 border border-slate-900 p-4 space-y-2">
-                                                {selectedPlotItems.map(plot => {
-                                                    const totalBatchArea = parseFloat(formData.areaApplied) || totalSelectedArea;
-                                                    const areaProportion = totalSelectedArea > 0 ? (plot.area / totalSelectedArea) : (1 / formData.plotIds.length);
-                                                    const plotAreaApplied = totalBatchArea * areaProportion;
 
-                                                    return (
-                                                        <div key={plot.id} className="flex justify-between items-center text-[9px] font-mono border-b border-slate-900/50 pb-2 last:border-0 last:pb-0">
-                                                            <div className="flex items-center gap-2">
-                                                                <div className="w-1 h-1 bg-slate-700 rounded-full" />
-                                                                <span className="text-slate-400 uppercase">{plot.name}</span>
-                                                            </div>
-                                                            <div className="flex gap-4">
-                                                                <span className="text-white font-black italic">{plotAreaApplied.toFixed(2)} HA</span>
-                                                                <span className="text-cyan-500 font-bold">{((plotAreaApplied / totalBatchArea) * 100).toFixed(0)}%</span>
-                                                            </div>
+                                    {/* ZONA_03: INFORMAÇÕES DE OPERAÇÃO */}
+                                    <div className="lg:col-span-3 p-8 space-y-8 bg-slate-950/50">
+                                        <div className="space-y-6">
+                                            <h4 className="text-[9px] font-black text-cyan-500 uppercase tracking-[0.3em] flex items-center gap-3 italic mb-4">
+                                                <div className="w-1 h-1 bg-cyan-500" /> 3. INFORMAÇÕES DE OPERAÇÃO
+                                            </h4>
+                                            <div className="space-y-6">
+                                                <div className="space-y-2 group/input">
+                                                    <label className="text-[9px] text-slate-500 font-bold uppercase tracking-widest ml-1 flex justify-between">
+                                                        <span>OPERADOR / RESPONSÁVEL</span>
+                                                        <User size={10} className="text-slate-700 group-focus-within/input:text-cyan-500" />
+                                                    </label>
+                                                    <select value={formData.operator} onChange={e => setFormData({ ...formData, operator: e.target.value })} className="w-full bg-slate-900/50 border border-slate-900 rounded-none px-4 py-3 text-xs font-mono text-white outline-none focus:border-cyan-500/50 transition-all appearance-none uppercase">
+                                                        <option value="">NÃO ATRIBUÍDO</option>
+                                                        {collaborators.map(c => <option key={c.id} value={c.name} className="bg-slate-950 font-mono">{c.name.toUpperCase()}</option>)}
+                                                    </select>
+                                                </div>
+
+                                                <div className="space-y-2 group/input">
+                                                    <label className="text-[9px] text-slate-500 font-bold uppercase tracking-widest ml-1 flex justify-between">
+                                                        <span>MÁQUINA / EQUIPAMENTO</span>
+                                                        <Activity size={10} className="text-slate-700 group-focus-within/input:text-cyan-500" />
+                                                    </label>
+                                                    <input placeholder="EX: TRATOR JD 6125J" value={formData.equipment} onChange={e => setFormData({ ...formData, equipment: e.target.value.toUpperCase() })} className="w-full bg-slate-900/50 border border-slate-900 rounded-none px-4 py-3 text-xs font-mono text-white outline-none focus:border-cyan-500/50 transition-all placeholder:text-slate-800" />
+                                                </div>
+
+                                                {/* INSTRUMENTOS METEOROLÓGICOS */}
+                                                <div className="grid grid-cols-2 gap-px bg-slate-900 border border-slate-900 overflow-hidden">
+                                                    <div className="bg-slate-950 p-4 space-y-2">
+                                                        <label className="text-[7px] text-slate-500 font-bold uppercase tracking-widest flex items-center gap-2">
+                                                            <Thermometer size={10} className="text-rose-500/50" /> TEMPERATURA
+                                                        </label>
+                                                        <div className="flex items-end gap-1">
+                                                            <input type="number" value={formData.weather.temp} onChange={e => setFormData({ ...formData, weather: { ...formData.weather, temp: e.target.value } })} className="w-full bg-transparent text-lg font-mono font-black text-white outline-none" placeholder="00" />
+                                                            <span className="text-[9px] text-slate-700 font-bold mb-1">°C</span>
                                                         </div>
-                                                    );
-                                                })}
+                                                    </div>
+                                                    <div className="bg-slate-950 p-4 space-y-2">
+                                                        <label className="text-[7px] text-slate-500 font-bold uppercase tracking-widest flex items-center gap-2">
+                                                            <Droplet size={10} className="text-cyan-500/50" /> UMIDADE
+                                                        </label>
+                                                        <div className="flex items-end gap-1">
+                                                            <input type="number" value={formData.weather.humidity} onChange={e => setFormData({ ...formData, weather: { ...formData.weather, humidity: e.target.value } })} className="w-full bg-transparent text-lg font-mono font-black text-white outline-none" placeholder="00" />
+                                                            <span className="text-[9px] text-slate-700 font-bold mb-1">%</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div className="space-y-2">
+                                                    <label className="text-[9px] text-slate-500 font-bold uppercase tracking-widest ml-1">OBSERVAÇÕES GERAIS</label>
+                                                    <textarea rows={5} value={formData.observations} onChange={e => setFormData({ ...formData, observations: e.target.value })} className="w-full bg-slate-900/50 border border-slate-900 rounded-none px-4 py-4 text-[9px] font-mono text-slate-400 outline-none focus:border-cyan-500/50 transition-all placeholder:text-slate-800 custom-scrollbar resize-none" placeholder="Relatar anomalias ou observações técnicas..." />
+                                                </div>
                                             </div>
-                                            <p className="text-[8px] text-slate-600 italic uppercase">As doses e quantidades serão distribuídas proporcionalmente à área de cada talhão selecionado.</p>
                                         </div>
-                                    )}
+                                        {/* BATCH_PREVIEW: VISÃO DE DIVISÃO */}
+                                        {formData.plotIds.length > 1 && (
+                                            <div className="space-y-6 pt-8 border-t border-slate-900">
+                                                <h4 className="text-[9px] font-black text-orange-500 uppercase tracking-[0.3em] flex items-center gap-3 italic">
+                                                    <div className="w-1 h-1 bg-orange-500" /> RESUMO DA DIVISÃO EM LOTE
+                                                </h4>
+                                                <div className="bg-slate-900/30 border border-slate-900 p-4 space-y-2">
+                                                    {selectedPlotItems.map(plot => {
+                                                        const totalBatchArea = parseFloat(formData.areaApplied) || totalSelectedArea;
+                                                        const areaProportion = totalSelectedArea > 0 ? (plot.area / totalSelectedArea) : (1 / formData.plotIds.length);
+                                                        const plotAreaApplied = totalBatchArea * areaProportion;
+
+                                                        return (
+                                                            <div key={plot.id} className="flex justify-between items-center text-[9px] font-mono border-b border-slate-900/50 pb-2 last:border-0 last:pb-0">
+                                                                <div className="flex items-center gap-2">
+                                                                    <div className="w-1 h-1 bg-slate-700 rounded-full" />
+                                                                    <span className="text-slate-400 uppercase">{plot.name}</span>
+                                                                </div>
+                                                                <div className="flex gap-4">
+                                                                    <span className="text-white font-black italic">{plotAreaApplied.toFixed(2)} HA</span>
+                                                                    <span className="text-cyan-500 font-bold">{((plotAreaApplied / totalBatchArea) * 100).toFixed(0)}%</span>
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                                <p className="text-[8px] text-slate-600 italic uppercase">As doses e quantidades serão distribuídas proporcionalmente à área de cada talhão selecionado.</p>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                         </form>
