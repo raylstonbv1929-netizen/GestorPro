@@ -1,12 +1,14 @@
 import React, { useState, useMemo } from 'react';
 import {
-    Truck, BadgeCheck, Ban, Search, X, Plus, Factory, Star, User, Phone, Mail, Edit, Trash2,
-    MessageSquare, Globe, MapPin, CreditCard, Clock, Activity, ShieldCheck, MoreVertical,
-    CheckCircle2, AlertCircle, ExternalLink, Filter, Layers, Zap, Info, ShieldAlert,
-    Building2, FileText, Landmark
+    Truck, Plus, Star, User, Phone, Mail, Edit, Trash2,
+    MessageSquare, MapPin, Clock, Activity, ShieldCheck,
+    CheckCircle2, AlertCircle, Layers, Zap, Info, ShieldAlert,
+    Building2, FileText, Landmark, SlidersHorizontal, Search, X, CreditCard
 } from 'lucide-react';
 import { useApp } from '../../contexts/AppContext';
 import { Card } from '../../components/common/Card';
+import { Modal } from '../../components/common/Modal';
+import { TacticalFilterBlade } from '../../components/common/TacticalFilterBlade';
 
 export const SuppliersPage = () => {
     const { suppliers, setSuppliers, addActivity } = useApp();
@@ -58,7 +60,7 @@ export const SuppliersPage = () => {
         e.preventDefault();
         if (editingSupplierId) {
             setSuppliers(suppliers.map(s => s.id === editingSupplierId ? { ...s, ...form } : s));
-            addActivity('Atualizou parceiro técnico', form.name);
+            addActivity('Atualizou parceiro técnico', form.name, 'neutral');
         } else {
             const newSupplier = {
                 ...form,
@@ -66,7 +68,7 @@ export const SuppliersPage = () => {
                 lastOrder: "Sem pedidos ativos"
             };
             setSuppliers([newSupplier, ...suppliers]);
-            addActivity('Homologou novo fornecedor', form.name);
+            addActivity('Homologou novo fornecedor', form.name, 'neutral');
         }
         setIsFormOpen(false);
         resetForm();
@@ -84,7 +86,7 @@ export const SuppliersPage = () => {
     const deleteSupplier = (id: number) => {
         const supplier = suppliers.find(s => s.id === id);
         if (supplier && window.confirm(`Deseja remover permanentemente o registro de ${supplier.name}?`)) {
-            addActivity('Desvinculou fornecedor', supplier.name);
+            addActivity('Desvinculou fornecedor', supplier.name, 'neutral');
             setSuppliers(suppliers.filter(s => s.id !== id));
         }
     };
@@ -117,10 +119,10 @@ export const SuppliersPage = () => {
                         <Plus size={20} /> Homologar Parceiro
                     </button>
                     <button
-                        onClick={() => setIsFilterPanelOpen(!isFilterPanelOpen)}
-                        className={`p-5 rounded-2xl border transition-all ${isFilterPanelOpen ? 'bg-emerald-500/10 border-emerald-500 text-emerald-400' : 'bg-slate-900 border-slate-800 text-slate-500 hover:text-white group-hover:border-slate-700'}`}
+                        onClick={() => setIsFilterPanelOpen(true)}
+                        className={`px-6 py-5 rounded-2xl border transition-all flex items-center gap-3 font-black text-[10px] tracking-widest uppercase italic group ${isFilterPanelOpen ? 'bg-emerald-500/10 border-emerald-500 text-emerald-400' : 'bg-slate-900 border-slate-800 text-slate-500 hover:text-white hover:border-slate-700'}`}
                     >
-                        <Filter size={20} />
+                        <SlidersHorizontal size={20} className="group-hover:rotate-180 transition-transform duration-500" /> Advanced_Filters
                     </button>
                 </div>
             </div>
@@ -161,47 +163,49 @@ export const SuppliersPage = () => {
                 </div>
             </div>
 
-            {/* SCANNER PANEL */}
-            {isFilterPanelOpen && (
-                <div className="bg-slate-950/80 border border-slate-900 p-6 md:p-8 rounded-[1.5rem] md:rounded-[2.5rem] mb-6 animate-in slide-in-from-top-4 duration-500 backdrop-blur-xl shadow-2xl relative overflow-hidden">
-                    <div className="absolute top-0 left-0 w-1 md:w-1.5 h-full bg-emerald-500/50 z-20" />
-
+            {/* TACTICAL FILTER BLADE */}
+            <TacticalFilterBlade
+                isOpen={isFilterPanelOpen}
+                onClose={() => setIsFilterPanelOpen(false)}
+                title="Scanner de Varredura de Suprimentos"
+                searchTerm={searchTerm}
+                onSearchChange={setSearchTerm}
+                onReset={() => {
+                    setSearchTerm('');
+                    setFilter('all');
+                }}
+                progress={(filteredSuppliers.length / Math.max(suppliers.length, 1)) * 100}
+                metrics={[
+                    { label: 'ENTIDADES LOCALIZADAS', value: filteredSuppliers.length.toString().padStart(3, '0') },
+                    { label: 'SINCRONIZAÇÃO', value: '100%' }
+                ]}
+            >
+                <div className="space-y-8">
                     <div className="space-y-4">
-                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2 ml-1">
-                            <Search size={12} className="text-emerald-500" /> Scanner de Identidade (NOME/CNPJ)
-                        </label>
-
-                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
-                            <div className="lg:col-span-8">
-                                <div className="relative group h-full">
-                                    <input
-                                        type="text"
-                                        placeholder="INICIAR VARREDURA..."
-                                        className="w-full h-full bg-slate-900/50 border border-slate-800 py-4 px-6 rounded-2xl text-xs font-black uppercase tracking-widest text-white outline-none focus:border-emerald-500/50 transition-all italic placeholder:text-slate-800"
-                                        value={searchTerm}
-                                        onChange={e => setSearchTerm(e.target.value)}
-                                    />
-                                    <div className="absolute right-6 top-1/2 -translate-y-1/2 opacity-20 group-focus-within:opacity-100 transition-opacity pointer-events-none">
-                                        <Zap size={16} className="text-emerald-500" />
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="lg:col-span-4 flex gap-3 overflow-x-auto custom-scrollbar pb-2 lg:pb-0">
-                                {['all', 'active', 'inactive'].map(s => (
-                                    <button
-                                        key={s}
-                                        onClick={() => setFilter(s)}
-                                        className={`flex-1 px-4 py-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border whitespace-nowrap flex items-center justify-center ${filter === s ? 'bg-emerald-500 text-emerald-950 border-emerald-400 shadow-lg' : 'bg-slate-900 border-slate-800 text-slate-500 hover:text-slate-200'}`}
-                                    >
-                                        {s === 'all' ? 'Ver Todos' : s === 'active' ? 'Ativos' : 'Suspensos'}
-                                    </button>
-                                ))}
-                            </div>
+                        <label className="text-[8px] font-black text-slate-500 uppercase tracking-widest ml-1">Status de Homologação</label>
+                        <div className="grid grid-cols-3 gap-3">
+                            {['all', 'active', 'inactive'].map(s => (
+                                <button
+                                    key={s}
+                                    onClick={() => setFilter(s)}
+                                    className={`px-4 py-4 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all border ${filter === s ? 'bg-emerald-600 text-white border-emerald-400 shadow-lg' : 'bg-slate-900 border-slate-800 text-slate-500 hover:text-slate-200'}`}
+                                >
+                                    {s === 'all' ? 'Ver Todos' : s === 'active' ? 'Homologados' : 'Suspensos'}
+                                </button>
+                            ))}
                         </div>
                     </div>
+
+                    <div className="p-6 bg-emerald-500/5 rounded-2xl border border-emerald-500/10 space-y-3">
+                        <p className="text-[8px] text-emerald-400 font-black uppercase tracking-widest italic flex items-center gap-2">
+                            <Info size={12} /> Dica de Varredura
+                        </p>
+                        <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest italic leading-relaxed">
+                            A busca avançada permite localizar parceiros por Nome Jurídico, CNPJ ou Categoria Operacional em tempo real.
+                        </p>
+                    </div>
                 </div>
-            )}
+            </TacticalFilterBlade>
 
             {/* SUPPLIER GRID */}
             <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-6 md:gap-8">
@@ -290,11 +294,12 @@ export const SuppliersPage = () => {
             </div>
 
             {/* PROTOCOL MODAL: HOMOLOGAÇÃO */}
-            {isFormOpen && (
-                <div className="fixed inset-0 z-[120] flex items-center justify-center p-2 md:p-4">
-                    <div className="absolute inset-0 bg-slate-950/95 backdrop-blur-2xl" onClick={() => setIsFormOpen(false)} />
-
-                    <Card variant="glass" className="w-full max-w-5xl relative z-10 p-0 overflow-hidden border-emerald-500/20 shadow-2xl rounded-[1.5rem] md:rounded-[3rem] !scale-100 flex flex-col h-[95vh] md:h-[90vh]">
+            <Modal
+                isOpen={isFormOpen}
+                onClose={() => setIsFormOpen(false)}
+                maxWidth="max-w-5xl"
+            >
+                <Card variant="glass" className="relative z-10 p-0 overflow-hidden border-emerald-500/20 shadow-2xl rounded-[1.5rem] md:rounded-[3rem] !scale-100 flex flex-col h-[95vh] md:h-[90vh]">
                         {/* Integrity progress bar */}
                         <div className="h-1.5 w-full bg-slate-900">
                             <div className="h-full bg-emerald-500 shadow-[0_0_15px_#10b981]" style={{ width: editingSupplierId ? '100%' : '50%' }} />
@@ -415,8 +420,7 @@ export const SuppliersPage = () => {
                             </div>
                         </div>
                     </Card>
-                </div>
-            )}
+            </Modal>
         </div>
     );
 };

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { AppProvider, useApp } from './contexts/AppContext';
 import LoginPage from './pages/LoginPage';
@@ -14,18 +14,20 @@ import {
   FileBarChart, Printer, Download, DownloadCloud, FileSpreadsheet, Percent, Target, Settings, Globe, Shield, Database, RefreshCw, UploadCloud, LogOut, Layout, Wind, Smartphone, MessageSquare
 } from 'lucide-react';
 
-// Import Pages
-import { DashboardPage } from './pages/dashboard/DashboardPage';
-import { FieldApplicationsPage } from './pages/field/FieldApplicationsPage';
-import { PropertiesPage } from './pages/properties/PropertiesPage';
-import { TasksPage } from './pages/tasks/TasksPage';
-import { CollaboratorsPage } from './pages/collaborators/CollaboratorsPage';
-import { ClientsPage } from './pages/clients/ClientsPage';
-import { SuppliersPage } from './pages/suppliers/SuppliersPage';
-import { ProductsPage } from './pages/products/ProductsPage';
-import { FinancePage } from './pages/finance/FinancePage';
-import { CashFlowPage } from './pages/finance/CashFlowPage';
-import { SettingsPage } from './pages/settings/SettingsPage';
+import { RouteLoader } from './components/common/RouteLoader';
+
+// Lazy Load Pages
+const DashboardPage = lazy(() => import('./pages/dashboard/DashboardPage').then(m => ({ default: m.DashboardPage })));
+const FieldApplicationsPage = lazy(() => import('./pages/field/FieldApplicationsPage').then(m => ({ default: m.FieldApplicationsPage })));
+const PropertiesPage = lazy(() => import('./pages/properties/PropertiesPage').then(m => ({ default: m.PropertiesPage })));
+const TasksPage = lazy(() => import('./pages/tasks/TasksPage').then(m => ({ default: m.TasksPage })));
+const CollaboratorsPage = lazy(() => import('./pages/collaborators/CollaboratorsPage').then(m => ({ default: m.CollaboratorsPage })));
+const ClientsPage = lazy(() => import('./pages/clients/ClientsPage').then(m => ({ default: m.ClientsPage })));
+const SuppliersPage = lazy(() => import('./pages/suppliers/SuppliersPage').then(m => ({ default: m.SuppliersPage })));
+const ProductsPage = lazy(() => import('./pages/products/ProductsPage').then(m => ({ default: m.ProductsPage })));
+const FinancePage = lazy(() => import('./pages/finance/FinancePage').then(m => ({ default: m.FinancePage })));
+const CashFlowPage = lazy(() => import('./pages/finance/CashFlowPage').then(m => ({ default: m.CashFlowPage })));
+const SettingsPage = lazy(() => import('./pages/settings/SettingsPage').then(m => ({ default: m.SettingsPage })));
 
 // --- ESTILOS GLOBAIS ---
 const GlobalStyles = () => (
@@ -113,7 +115,7 @@ function MainContent() {
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-emerald-500/10 via-transparent to-transparent animate-pulse"></div>
         <div className="relative">
           <div className="w-24 h-24 rounded-3xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-500 shadow-[0_0_50px_rgba(16,185,129,0.1)]">
-            <RefreshCw size={48} className="animate-spin duration-[3000ms]" />
+            <RefreshCw size={48} className="animate-spin duration-[4000ms]" />
           </div>
           <div className="absolute -top-1 -right-1 w-4 h-4 bg-emerald-500 rounded-full animate-ping"></div>
         </div>
@@ -263,17 +265,19 @@ function MainContent() {
         </header>
 
         <div className="flex-1 overflow-hidden p-8 relative">
-          {activeTab === 'dashboard' && <DashboardPage />}
-          {activeTab === 'field_applications' && <FieldApplicationsPage />}
-          {activeTab === 'properties' && <PropertiesPage />}
-          {activeTab === 'tasks' && <TasksPage />}
-          {activeTab === 'collaborators' && <CollaboratorsPage />}
-          {activeTab === 'clients' && <ClientsPage />}
-          {activeTab === 'suppliers' && <SuppliersPage />}
-          {activeTab === 'products' && <ProductsPage />}
-          {activeTab === 'finance' && <FinancePage />}
-          {activeTab === 'cashflow' && <CashFlowPage />}
-          {activeTab === 'settings' && <SettingsPage />}
+          <Suspense fallback={<RouteLoader />}>
+            {activeTab === 'dashboard' && <DashboardPage />}
+            {activeTab === 'field_applications' && <FieldApplicationsPage />}
+            {activeTab === 'properties' && <PropertiesPage />}
+            {activeTab === 'tasks' && <TasksPage />}
+            {activeTab === 'collaborators' && <CollaboratorsPage />}
+            {activeTab === 'clients' && <ClientsPage />}
+            {activeTab === 'suppliers' && <SuppliersPage />}
+            {activeTab === 'products' && <ProductsPage />}
+            {activeTab === 'finance' && <FinancePage />}
+            {activeTab === 'cashflow' && <CashFlowPage />}
+            {activeTab === 'settings' && <SettingsPage />}
+          </Suspense>
         </div>
       </main>
     </div>

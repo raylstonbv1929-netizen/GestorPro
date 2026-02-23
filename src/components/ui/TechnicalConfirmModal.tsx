@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { AlertTriangle, ShieldAlert, Cpu, Terminal, X, ChevronRight } from 'lucide-react';
-import { createPortal } from 'react-dom';
+import { Modal } from '../common/Modal';
 
 interface TechnicalConfirmModalProps {
     isOpen: boolean;
@@ -33,14 +33,13 @@ export const TechnicalConfirmModal: React.FC<TechnicalConfirmModalProps> = ({
         }
     };
 
-    return createPortal(
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
-            <div
-                className="absolute inset-0 bg-slate-950/80 backdrop-blur-md animate-fade-in"
-                onClick={onClose}
-            ></div>
-
-            <div className={`relative w-full max-w-lg bg-slate-950 border border-slate-800 rounded-[2.5rem] overflow-hidden shadow-[0_0_100px_rgba(244,63,94,0.1)] transition-all duration-500 scale-100 animate-fade-in`}>
+    return (
+        <Modal 
+            isOpen={isOpen} 
+            onClose={onClose} 
+            maxWidth="max-w-lg"
+        >
+            <div className={`relative w-full bg-slate-950 border border-slate-800 rounded-[2.5rem] overflow-hidden shadow-[0_0_100px_rgba(244,63,94,0.1)] transition-all duration-500 scale-100 animate-fade-in`}>
                 {/* Header Técnico */}
                 <div className="bg-rose-500/10 border-b border-rose-500/20 p-6 flex items-center justify-between">
                     <div className="flex items-center gap-4">
@@ -133,7 +132,6 @@ export const TechnicalConfirmModal: React.FC<TechnicalConfirmModalProps> = ({
                     </div>
                 </div>
             </div>
-        </div>,
-        document.body
+        </Modal>
     );
 };

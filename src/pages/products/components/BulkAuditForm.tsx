@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useRef } from 'react';
 import { X, Plus, Trash2, Save, Info, Table, ChevronRight, AlertCircle, Layers, Keyboard, Settings2, RotateCcw, Calendar, Database, FileCode, Upload, Eraser, Copy } from 'lucide-react';
 import { Card } from '../../../components/common/Card';
+import { Modal } from '../../../components/common/Modal';
 import { maskNumber, maskValue, parseValue, formatCurrency } from '../../../utils/format';
 
 interface BulkProductEntry {
@@ -260,10 +261,12 @@ export const BulkAuditForm: React.FC<BulkAuditFormProps> = ({
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-slate-950/95 backdrop-blur-2xl" onClick={onClose} />
-
-            <Card variant="glass" className="w-full max-w-[98vw] h-[92vh] relative z-10 p-0 overflow-hidden border-emerald-500/20 shadow-2xl rounded-[2.5rem] flex flex-col">
+        <Modal 
+            isOpen={isOpen} 
+            onClose={onClose} 
+            maxWidth="max-w-[98vw]"
+        >
+            <Card variant="glass" className="h-[92vh] relative z-10 p-0 overflow-hidden border-emerald-500/20 shadow-2xl rounded-[2.5rem] flex flex-col">
                 {/* Header */}
                 <div className="p-8 border-b border-slate-800 bg-slate-950/40 flex justify-between items-center shrink-0">
                     <div className="flex items-center gap-4">
@@ -622,6 +625,6 @@ export const BulkAuditForm: React.FC<BulkAuditFormProps> = ({
                     </div>
                 </div>
             </Card>
-        </div>
+        </Modal>
     );
 };

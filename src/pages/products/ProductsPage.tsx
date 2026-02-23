@@ -288,9 +288,9 @@ export const ProductsPage = () => {
                         <div className="flex gap-3">
                             <button
                                 onClick={() => setIsAdvancedFiltersOpen(true)}
-                                className={`px-6 rounded-2xl border transition-all flex items-center gap-3 text-[10px] font-black uppercase tracking-widest ${Object.values(advancedFilters).some(v => v !== 'all' && v !== '') ? 'bg-emerald-500/10 border-emerald-500 text-emerald-400' : 'bg-slate-950 border-slate-800 text-slate-500 hover:text-white'}`}
+                                className={`px-6 py-5 rounded-2xl border transition-all flex items-center gap-3 font-black text-[10px] tracking-widest uppercase italic group ${isAdvancedFiltersOpen ? 'bg-emerald-500/10 border-emerald-500 text-emerald-400' : 'bg-slate-950 border-slate-800 text-slate-500 hover:text-white hover:border-slate-700'}`}
                             >
-                                <SlidersHorizontal size={18} /> FILTROS
+                                <SlidersHorizontal size={20} className="group-hover:rotate-180 transition-transform duration-500" /> Advanced_Filters
                             </button>
                             <button
                                 onClick={() => setIsBulkEntryOpen(true)}
@@ -374,6 +374,7 @@ export const ProductsPage = () => {
             <TacticalFilterBlade
                 isOpen={isAdvancedFiltersOpen}
                 onClose={() => setIsAdvancedFiltersOpen(false)}
+                title="Scanner de Varredura de Insumos"
                 searchTerm={searchTerm}
                 onSearchChange={setSearchTerm}
                 onReset={resetFilters}

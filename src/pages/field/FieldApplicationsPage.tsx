@@ -4,17 +4,26 @@ import {
     Calendar, Filter, MapPin, Droplets, AlertCircle, Trash2, Copy,
     Clock, User, Wind, Thermometer, Droplet, ClipboardList, Gauge,
     ShieldCheck, ShieldAlert, Zap, Info, ArrowRight, CheckCircle2,
-    TrendingUp, Star, RefreshCw, MessageSquare, Layers, Terminal, Loader2, Target
+    TrendingUp, Star, RefreshCw, MessageSquare, Layers, Terminal, Loader2, Target, SlidersHorizontal
 } from 'lucide-react';
 import { useApp } from '../../contexts/AppContext';
 import { Card } from '../../components/common/Card';
 import { TacticalFilterBlade } from '../../components/common/TacticalFilterBlade';
 import { useTacticalFilter } from '../../hooks/useTacticalFilter';
+import { FieldApplication } from '../../types';
 import { formatCurrency, formatNumber } from '../../utils/format';
 
 // --- SUB-COMPONENTS ---
 
-const TankHUD = ({ products, area, sprayVolume = 0 }: { products: any[], area: number, sprayVolume?: number }) => {
+interface HUDProduct {
+    productName: string;
+    dose: number;
+    doseUnit: string;
+    totalQuantity: number;
+    unit: string;
+}
+
+const TankHUD = ({ products, area, sprayVolume = 0 }: { products: HUDProduct[], area: number, sprayVolume?: number }) => {
     const areaVal = isNaN(area) ? 0 : area;
     const sprayVal = isNaN(sprayVolume) ? 0 : sprayVolume;
     const totalVolume = sprayVal * areaVal;
@@ -53,7 +62,7 @@ const TankHUD = ({ products, area, sprayVolume = 0 }: { products: any[], area: n
                         <span className="text-xs font-black text-slate-400 uppercase tracking-[0.4em]">Aguardando Insumos...</span>
                     </div>
                 ) : (
-                    products.map((p: any, idx: number) => {
+                    products.map((p: HUDProduct, idx: number) => {
                         const height = Math.max(10, 100 / products.length);
                         const colors = [
                             'from-cyan-500/30 to-cyan-700/10',
@@ -125,13 +134,18 @@ export const FieldApplicationsPage = () => {
         updateAdvancedFilter,
         filteredData: filteredApplications,
         resetFilters
-    } = useTacticalFilter({
+    } = useTacticalFilter<FieldApplication>({
         data: fieldApplications,
-        searchFields: ['plotName', 'operator', 'target'],
-        customFilter: (app: any, term) => {
+        searchFields: ['target', 'plotName', 'operator', 'equipment'],
+        customFilter: (app: FieldApplication, term) => {
+            const lowerCaseTerm = term.toLowerCase();
+            if (lowerCaseTerm === 'concluído' || lowerCaseTerm === 'ok') return app.status === 'completed';
+            if (lowerCaseTerm === 'planejado' || lowerCaseTerm === 'pendente') return app.status === 'planned';
+
+            // Fallback to property name search if no status match
             const appPlot = plots.find(p => p.id === app.plotId);
             const property = properties.find(prop => prop.id === appPlot?.propertyId);
-            return (property?.name || '').toLowerCase().includes(term.toLowerCase());
+            return (property?.name || '').toLowerCase().includes(lowerCaseTerm);
         }
     });
 
@@ -642,10 +656,10 @@ export const FieldApplicationsPage = () => {
                             <Plus size={20} /> Registrar Aplicação
                         </button>
                         <button
-                            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                            className={`p-5 rounded-none border transition-all ${isSidebarOpen ? 'bg-cyan-500/10 border-cyan-500 text-cyan-400' : 'bg-slate-900 border-slate-800 text-slate-500 hover:text-white group-hover:border-slate-700'}`}
+                            onClick={() => setIsSidebarOpen(true)}
+                            className={`px-6 py-5 rounded-none border transition-all flex items-center gap-3 font-black text-[10px] tracking-widest uppercase italic group ${isSidebarOpen ? 'bg-cyan-500/10 border-cyan-500 text-cyan-400' : 'bg-slate-900 border-slate-800 text-slate-500 hover:text-white hover:border-slate-700'}`}
                         >
-                            <Filter size={20} />
+                            <SlidersHorizontal size={20} className="group-hover:rotate-180 transition-transform duration-500" /> Advanced_Filters
                         </button>
                     </div>
                 </div>
@@ -690,6 +704,7 @@ export const FieldApplicationsPage = () => {
                 <TacticalFilterBlade
                     isOpen={isSidebarOpen}
                     onClose={() => setIsSidebarOpen(false)}
+                    title="Scanner de Varredura Fitoestatística"
                     searchTerm={searchTerm}
                     onSearchChange={setSearchTerm}
                     onReset={resetFilters}

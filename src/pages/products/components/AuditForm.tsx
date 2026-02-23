@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Info, Warehouse, DollarSign, ChevronRight, Scale, Plus, CheckCheck } from 'lucide-react';
 import { Card } from '../../../components/common/Card';
+import { Modal } from '../../../components/common/Modal';
 import { maskNumber, maskValue, parseValue, formatCurrency, formatNumber } from '../../../utils/format';
 
 interface AuditFormProps {
@@ -40,11 +41,13 @@ export const AuditForm: React.FC<AuditFormProps> = ({
     };
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-xl" onClick={onClose} />
-
-            <Card variant="glass" className="w-full max-w-4xl relative z-10 shadow-[0_0_100px_rgba(0,0,0,0.8)] border border-emerald-500/20 !scale-100 !hover:scale-100 p-0 overflow-hidden rounded-[2.5rem]" style={{ transform: 'none' }}>
-                <div className="flex flex-col h-[80vh] md:h-auto">
+        <Modal 
+            isOpen={isOpen} 
+            onClose={onClose} 
+            maxWidth="max-w-[1000px]"
+        >
+            <Card variant="glass" className="relative z-10 shadow-[0_0_100px_rgba(0,0,0,0.8)] border border-emerald-500/20 !scale-100 !hover:scale-100 p-0 overflow-hidden rounded-[2.5rem]" style={{ transform: 'none' }}>
+                <div className="flex flex-col h-[800px] max-h-[90vh]">
                     {/* Modal Header */}
                     <div className="p-8 border-b border-slate-800 flex justify-between items-center bg-slate-950/40">
                         <div>
@@ -333,6 +336,6 @@ export const AuditForm: React.FC<AuditFormProps> = ({
                     </div>
                 </div>
             </Card>
-        </div>
+        </Modal>
     );
 };

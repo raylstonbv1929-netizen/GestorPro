@@ -2,11 +2,12 @@ import React, { useState, useMemo } from 'react';
 import {
     Briefcase, Users, UserCheck, HardHat, Ban, Search, X, Plus, Edit, Trash2, Phone, Mail, Calendar,
     User, DollarSign, Activity, MapPin, Target, ChevronRight, Zap, ShieldCheck, FileText, Landmark,
-    Clock, MoreVertical, CheckCircle2, AlertCircle, RefreshCw, Star, Filter
+    Clock, MoreVertical, CheckCircle2, AlertCircle, RefreshCw, Star, Filter, SlidersHorizontal
 } from 'lucide-react';
 import { useApp } from '../../contexts/AppContext';
 import { Card } from '../../components/common/Card';
 import { formatNumber, maskValue } from '../../utils/format';
+import { Modal } from '../../components/common/Modal';
 import { TacticalFilterBlade } from '../../components/common/TacticalFilterBlade';
 import { useTacticalFilter } from '../../hooks/useTacticalFilter';
 import { Collaborator } from '../../types';
@@ -123,10 +124,10 @@ export const CollaboratorsPage = () => {
                         <Plus size={20} /> Registrar Ativo
                     </button>
                     <button
-                        onClick={() => setIsFilterPanelOpen(!isFilterPanelOpen)}
-                        className={`p-5 rounded-2xl border transition-all ${isFilterPanelOpen ? 'bg-indigo-500/10 border-indigo-500 text-indigo-400' : 'bg-slate-900 border-slate-800 text-slate-500 hover:text-white group-hover:border-slate-700'}`}
+                        onClick={() => setIsFilterPanelOpen(true)}
+                        className={`px-6 py-5 rounded-2xl border transition-all flex items-center gap-3 font-black text-[10px] tracking-widest uppercase italic group ${isFilterPanelOpen ? 'bg-indigo-500/10 border-indigo-500 text-indigo-400' : 'bg-slate-900 border-slate-800 text-slate-500 hover:text-white hover:border-slate-700'}`}
                     >
-                        <Filter size={20} />
+                        <SlidersHorizontal size={20} className="group-hover:rotate-180 transition-transform duration-500" /> Advanced_Filters
                     </button>
                 </div>
             </div>
@@ -161,6 +162,7 @@ export const CollaboratorsPage = () => {
             <TacticalFilterBlade
                 isOpen={isFilterPanelOpen}
                 onClose={() => setIsFilterPanelOpen(false)}
+                title="Scanner de Varredura de Capital Humano"
                 searchTerm={searchTerm}
                 onSearchChange={setSearchTerm}
                 onReset={resetFilters}
@@ -309,11 +311,12 @@ export const CollaboratorsPage = () => {
             </div>
 
             {/* PROTOCOL MODAL: COLABORADOR */}
-            {isFormOpen && (
-                <div className="fixed inset-0 z-[120] flex items-center justify-center p-2 md:p-4">
-                    <div className="absolute inset-0 bg-slate-950/95 backdrop-blur-2xl" onClick={() => setIsFormOpen(false)} />
-
-                    <Card variant="glass" className="w-full max-w-5xl relative z-10 p-0 overflow-hidden border-indigo-500/20 shadow-2xl rounded-[1.5rem] md:rounded-[3rem] !scale-100 flex flex-col h-[95vh] md:h-[90vh]">
+            <Modal
+                isOpen={isFormOpen}
+                onClose={() => setIsFormOpen(false)}
+                maxWidth="max-w-5xl"
+            >
+                <Card variant="glass" className="relative z-10 p-0 overflow-hidden border-indigo-500/20 shadow-2xl rounded-[1.5rem] md:rounded-[3rem] !scale-100 flex flex-col h-[95vh] md:h-[90vh]">
                         {/* Integrity progress bar */}
                         <div className="h-1.5 w-full bg-slate-900">
                             <div className="h-full bg-indigo-500 shadow-[0_0_15px_#6366f1]" style={{ width: `${(Object.values(formData).filter(v => v !== '').length / 8) * 100}%` }} />
@@ -432,8 +435,7 @@ export const CollaboratorsPage = () => {
                             </div>
                         </div>
                     </Card>
-                </div>
-            )}
+            </Modal>
         </div>
     );
 };

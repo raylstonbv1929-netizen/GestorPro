@@ -19,33 +19,44 @@ def run_lighthouse(url: str) -> dict:
         with tempfile.NamedTemporaryFile(suffix='.json', delete=False) as f:
             output_path = f.name
         
+        is_windows = sys.platform == "win32"
         result = subprocess.run(
             [
+                "npx",
+                "-y",
                 "lighthouse",
                 url,
                 "--output=json",
                 f"--output-path={output_path}",
                 "--chrome-flags=--headless",
-                "--only-categories=performance,accessibility,best-practices,seo"
+                "--only-categories=performance,accessibility,best-practices,seo",
+                "--no-enable-error-reporting",
+                "--quiet"
             ],
             capture_output=True,
             text=True,
-            timeout=120
+            timeout=300,
+            shell=is_windows
         )
         
         if os.path.exists(output_path):
-            with open(output_path, 'r') as f:
+            with open(output_path, 'r', encoding='utf-8') as f:
                 report = json.load(f)
             os.unlink(output_path)
             
             categories = report.get("categories", {})
+            def safe_score(cat_name):
+                cat = categories.get(cat_name, {})
+                score = cat.get("score")
+                return int(score * 100) if score is not None else 0
+
             return {
                 "url": url,
                 "scores": {
-                    "performance": int(categories.get("performance", {}).get("score", 0) * 100),
-                    "accessibility": int(categories.get("accessibility", {}).get("score", 0) * 100),
-                    "best_practices": int(categories.get("best-practices", {}).get("score", 0) * 100),
-                    "seo": int(categories.get("seo", {}).get("score", 0) * 100)
+                    "performance": safe_score("performance"),
+                    "accessibility": safe_score("accessibility"),
+                    "best_practices": safe_score("best-practices"),
+                    "seo": safe_score("seo")
                 },
                 "summary": get_summary(categories)
             }
@@ -59,7 +70,8 @@ def run_lighthouse(url: str) -> dict:
 
 def get_summary(categories: dict) -> str:
     """Generate summary based on scores."""
-    perf = categories.get("performance", {}).get("score", 0) * 100
+    score = categories.get("performance", {}).get("score")
+    perf = int(score * 100) if score is not None else 0
     if perf >= 90:
         return "[OK] Excellent performance"
     elif perf >= 50:

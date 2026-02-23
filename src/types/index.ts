@@ -34,15 +34,16 @@ export interface Task {
     due: string;
     done: boolean;
     assignee: string;
+    propertyId?: number;
 }
 
 export interface PropertyAttachment {
     id: string;
     name: string;
     url: string;
-    type: string;
-    size: number;
-    createdAt: string;
+    type?: string;
+    size?: number;
+    createdAt?: string;
 }
 
 export interface Property {
@@ -113,6 +114,7 @@ export interface Plot {
     name: string;
     area: number;
     crop: string;
+    status: 'active' | 'inactive';
 }
 
 export interface FieldApplication {

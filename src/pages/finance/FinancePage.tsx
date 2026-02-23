@@ -3,17 +3,28 @@ import {
     Wallet, Filter, Download, X, Plus, Search, Activity, TrendingUp,
     TrendingDown, Calendar, User, Edit, Trash2, Zap, ShieldCheck,
     FileText, Landmark, Clock, ArrowUpRight, ArrowDownRight,
-    Settings, MoreHorizontal, CheckCircle2, AlertCircle, RefreshCw, Scan
+    Settings, MoreHorizontal, CheckCircle2, AlertCircle, RefreshCw, Scan, SlidersHorizontal
 } from 'lucide-react';
 import { ReceiptScanner } from '../../components/finance/ReceiptScanner';
 import { useApp } from '../../contexts/AppContext';
 import { Transaction } from '../../types';
 import { Card } from '../../components/common/Card';
+import { Modal } from '../../components/common/Modal';
 import { TacticalFilterBlade } from '../../components/common/TacticalFilterBlade';
 import { useTacticalFilter } from '../../hooks/useTacticalFilter';
 import { SimpleBarChart } from '../../components/common/SimpleBarChart';
 import { formatCurrency, parseValue, maskValue } from '../../utils/format';
 import { BACKUP_FINANCE_DATA } from '../../data/financeBackupData';
+
+const AGRICULTURAL_CATEGORIES = [
+    'Vendas de Grãos', 'Vendas de Animais', 'Serviços Prestados', 'Venda de Insumos',
+    'Insumos Agrícolas', 'Sementes', 'Fertilizantes', 'Defensivos', 'Corretivos',
+    'Combustível', 'Lubrificantes', 'Manutenção', 'Peças', 'Pneus',
+    'Folha de Pagamento', 'Encargos Sociais', 'Pró-labore', 'Alimentação',
+    'Energia Elétrica', 'Internet/Telefone', 'Água',
+    'Impostos e Taxas', 'Arrendamento', 'Fretes', 'Armazenagem',
+    'Seguros', 'Juros e Tarifas', 'Empréstimos', 'Outros'
+];
 
 export const FinancePage = () => {
     const {
@@ -32,7 +43,7 @@ export const FinancePage = () => {
     } = useTacticalFilter<Transaction>({
         data: transactions,
         searchFields: ['description', 'entity'],
-        customFilter: (t: any, term) => {
+        customFilter: (_t: Transaction, _term) => {
             // Add custom searchable logic if needed
             return false;
         }
@@ -56,17 +67,9 @@ export const FinancePage = () => {
     const [isScannerOpen, setIsScannerOpen] = useState(false);
     const [sortBy, setSortBy] = useState('date-desc');
 
-    const AGRICULTURAL_CATEGORIES = [
-        'Vendas de Grãos', 'Vendas de Animais', 'Serviços Prestados', 'Venda de Insumos',
-        'Insumos Agrícolas', 'Sementes', 'Fertilizantes', 'Defensivos', 'Corretivos',
-        'Combustível', 'Lubrificantes', 'Manutenção', 'Peças', 'Pneus',
-        'Folha de Pagamento', 'Encargos Sociais', 'Pró-labore', 'Alimentação',
-        'Energia Elétrica', 'Internet/Telefone', 'Água',
-        'Impostos e Taxas', 'Arrendamento', 'Fretes', 'Armazenagem',
-        'Seguros', 'Juros e Tarifas', 'Empréstimos', 'Outros'
-    ];
 
-    const categories = useMemo(() => ['Todas', ...new Set([...AGRICULTURAL_CATEGORIES, ...transactions.map(t => t.category)])].sort(), [transactions, AGRICULTURAL_CATEGORIES]);
+
+    const categories = useMemo(() => ['Todas', ...new Set([...AGRICULTURAL_CATEGORIES, ...transactions.map(t => t.category)])].sort(), [transactions]);
     const categoriesForForm = useMemo(() => categories.filter(c => c !== 'Todas'), [categories]);
 
     // Sorting logic integrated into useMemo
@@ -189,10 +192,10 @@ export const FinancePage = () => {
                         <Plus size={20} /> Novo Lançamento
                     </button>
                     <button
-                        onClick={() => setIsFilterPanelOpen(!isFilterPanelOpen)}
-                        className={`p-5 rounded-2xl border transition-all ${isFilterPanelOpen ? 'bg-amber-500/10 border-amber-500 text-amber-400' : 'bg-slate-900 border-slate-800 text-slate-500 hover:text-white group-hover:border-slate-700'}`}
+                        onClick={() => setIsFilterPanelOpen(true)}
+                        className={`px-6 py-5 rounded-2xl border transition-all flex items-center gap-3 font-black text-[10px] tracking-widest uppercase italic group ${isFilterPanelOpen ? 'bg-amber-500/10 border-amber-500 text-amber-400' : 'bg-slate-900 border-slate-800 text-slate-500 hover:text-white hover:border-slate-700'}`}
                     >
-                        <Filter size={20} />
+                        <SlidersHorizontal size={20} className="group-hover:rotate-180 transition-transform duration-500" /> Advanced_Filters
                     </button>
                     <button
                         onClick={handleDownloadCSV}
@@ -248,6 +251,7 @@ export const FinancePage = () => {
             <TacticalFilterBlade
                 isOpen={isFilterPanelOpen}
                 onClose={() => setIsFilterPanelOpen(false)}
+                title="Scanner de Varredura Financeira"
                 searchTerm={searchTerm}
                 onSearchChange={setSearchTerm}
                 onReset={resetFilters}
@@ -447,11 +451,12 @@ export const FinancePage = () => {
             </div>
 
             {/* PROTOCOL MODAL: FINANCEIRO */}
-            {isFormOpen && (
-                <div className="fixed inset-0 z-[120] flex items-center justify-center p-2 md:p-4">
-                    <div className="absolute inset-0 bg-slate-950/95 backdrop-blur-2xl" onClick={() => setIsFormOpen(false)} />
-
-                    <Card variant="glass" className="w-full max-w-4xl relative z-10 p-0 overflow-hidden border-amber-500/20 shadow-2xl rounded-[1.5rem] md:rounded-[3rem] !scale-100 flex flex-col h-[95vh] md:h-[90vh]">
+            <Modal
+                isOpen={isFormOpen}
+                onClose={() => setIsFormOpen(false)}
+                maxWidth="max-w-4xl"
+            >
+                <Card variant="glass" className="relative z-10 p-0 overflow-hidden border-amber-500/20 shadow-2xl rounded-[1.5rem] md:rounded-[3rem] !scale-100 flex flex-col h-[95vh] md:h-[90vh]">
                         <div className="h-1.5 w-full bg-slate-900">
                             <div className={`h-full ${form.type === 'income' ? 'bg-emerald-500' : 'bg-rose-500'} shadow-[0_0_15px]`} style={{ width: editingId ? '100%' : '50%' }} />
                         </div>
@@ -562,13 +567,16 @@ export const FinancePage = () => {
                             </div>
                         </div>
                     </Card>
-                </div>
-            )}
+            </Modal>
             {/* SCANNER MODAL */}
-            {isScannerOpen && (
-                <div className="fixed inset-0 z-[150] flex items-center justify-center p-2 md:p-4">
-                    <div className="absolute inset-0 bg-slate-950/98 backdrop-blur-3xl" onClick={() => setIsScannerOpen(false)} />
-                    <Card variant="glass" className="w-full max-w-6xl relative z-10 p-10 overflow-hidden border-emerald-500/20 shadow-2xl rounded-[1.5rem] md:rounded-[3rem] !scale-100 flex flex-col h-[90vh]">
+            <Modal
+                isOpen={isScannerOpen}
+                onClose={() => setIsScannerOpen(false)}
+                maxWidth="max-w-6xl"
+                blurIntensity="2xl"
+                backdropOpacity="bg-slate-950/98"
+            >
+                <Card variant="glass" className="relative z-10 p-10 overflow-hidden border-emerald-500/20 shadow-2xl rounded-[1.5rem] md:rounded-[3rem] !scale-100 flex flex-col h-[90vh]">
                         <ReceiptScanner
                             onCancel={() => setIsScannerOpen(false)}
                             onConfirm={(data) => {
@@ -583,8 +591,7 @@ export const FinancePage = () => {
                             }}
                         />
                     </Card>
-                </div>
-            )}
+            </Modal>
         </div>
     );
 };

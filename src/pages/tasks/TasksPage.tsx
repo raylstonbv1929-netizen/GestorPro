@@ -4,49 +4,50 @@ import {
     Trash2, Edit, Filter, Search, User, Calendar, MapPin,
     ChevronRight, Target, Activity, LayoutGrid, List, Zap,
     ShieldCheck, Landmark, RefreshCw, MoreVertical, Star,
-    ArrowRight, MessageSquare
+    ArrowRight, MessageSquare, SlidersHorizontal
 } from 'lucide-react';
 import { useApp } from '../../contexts/AppContext';
 import { Card } from '../../components/common/Card';
+import { Modal } from '../../components/common/Modal';
 import { TechnicalConfirmModal } from '../../components/ui/TechnicalConfirmModal';
+import { TacticalFilterBlade } from '../../components/common/TacticalFilterBlade';
+import { Task } from '../../types';
 
 export const TasksPage = () => {
     const { tasks, setTasks, properties, addActivity } = useApp();
     const [searchTerm, setSearchTerm] = useState('');
-    const [filter, setFilter] = useState('all');
+    const [filter, setFilter] = useState<'all' | 'pending' | 'completed' | 'urgent'>('all');
     const [isFormOpen, setIsFormOpen] = useState(false);
-    const [editingId, setEditingId] = useState<number | null>(null);
-    const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-    const [taskIdToDelete, setTaskIdToDelete] = useState<number | null>(null);
+    const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
+    const [editingTask, setEditingTask] = useState<Task | null>(null);
+    const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
 
-    const [formData, setFormData] = useState<{
-        text: string;
-        priority: 'high' | 'medium' | 'low';
-        due: string;
-        assignee: string;
-        propertyId: string;
-    }>({
-        text: '', priority: 'medium', due: new Date().toISOString().split('T')[0], assignee: '', propertyId: ''
+    const [formData, setFormData] = useState<Partial<Task>>({
+        text: '',
+        priority: 'medium',
+        due: new Date().toISOString().split('T')[0],
+        assignee: ''
     });
 
     const stats = useMemo(() => {
         const total = tasks.length;
-        const pending = tasks.filter((t: any) => !t.done).length;
-        const completed = total - pending;
-        const urgent = tasks.filter((t: any) => t.priority === 'high' && !t.done).length;
+        const completed = tasks.filter((t: Task) => t.done).length;
+        const pending = total - completed;
+        const urgent = tasks.filter((t: Task) => t.priority === 'high' && !t.done).length;
         const progress = total > 0 ? (completed / total) * 100 : 0;
         return { total, pending, completed, urgent, progress };
     }, [tasks]);
 
     const filteredTasks = useMemo(() => {
-        return tasks.filter((t: any) => {
-            const matchesSearch = t.text.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                t.assignee.toLowerCase().includes(searchTerm.toLowerCase());
+        return tasks.filter((task: Task) => {
+            const matchesSearch = task.text.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                task.assignee.toLowerCase().includes(searchTerm.toLowerCase());
             const matchesFilter = filter === 'all' ? true :
-                filter === 'pending' ? !t.done :
-                    filter === 'done' ? t.done :
-                        t.priority === filter;
+                filter === 'pending' ? !task.done :
+                    filter === 'completed' ? task.done :
+                        filter === 'urgent' ? task.priority === 'high' :
+                            true; // Should not happen with defined filters
             return matchesSearch && matchesFilter;
         });
     }, [tasks, searchTerm, filter]);
@@ -55,46 +56,49 @@ export const TasksPage = () => {
         e.preventDefault();
         const data = {
             ...formData,
-            propertyId: formData.propertyId ? parseInt(formData.propertyId) : undefined
+            propertyId: formData.propertyId ? (typeof formData.propertyId === 'string' ? parseInt(formData.propertyId) : formData.propertyId) : undefined
         };
 
-        if (editingId) {
-            setTasks(tasks.map((t: any) => t.id === editingId ? { ...t, ...data } : t));
-            addActivity('Retificou protocolo de missão', formData.text, 'neutral');
+        if (editingTask) {
+            setTasks(tasks.map((t: Task) => t.id === editingTask.id ? { ...t, ...data } as Task : t));
+            addActivity('Retificou protocolo de missão', formData.text || '', 'neutral');
         } else {
-            setTasks([{ ...data, id: Date.now(), done: false }, ...tasks]);
-            addActivity('Homologou nova missão operacional', formData.text, 'neutral');
+            setTasks([{ ...data, id: Date.now(), done: false } as Task, ...tasks]);
+            addActivity('Homologou nova missão operacional', formData.text || '', 'neutral');
         }
         setIsFormOpen(false);
         resetForm();
     };
 
+    const handleEdit = (task: Task) => {
+        setEditingTask(task);
+        setFormData(task);
+        setIsFormOpen(true);
+    };
+
     const resetForm = () => {
-        setEditingId(null);
-        setFormData({ text: '', priority: 'medium', due: new Date().toISOString().split('T')[0], assignee: '', propertyId: '' });
+        setEditingTask(null);
+        setFormData({ text: '', priority: 'medium', due: new Date().toISOString().split('T')[0], assignee: '' });
     };
 
-    const toggleTask = (id: number) => {
-        const task = tasks.find((t: any) => t.id === id);
-        if (task) {
-            setTasks(tasks.map((t: any) => t.id === id ? { ...t, done: !t.done } : t));
-            addActivity(task.done ? 'Missão suspensa/reaberta' : 'Missão cumprida', task.text, 'neutral');
-        }
+    const handleToggleTask = (taskToToggle: Task) => {
+        const updatedTasks = tasks.map((t: Task) =>
+            t.id === taskToToggle.id ? { ...t, done: !t.done } : t
+        );
+        setTasks(updatedTasks);
+        addActivity(taskToToggle.done ? 'Missão suspensa/reaberta' : 'Missão cumprida', taskToToggle.text, 'neutral');
     };
 
-    const deleteTask = (id: number) => {
-        setTaskIdToDelete(id);
+    const deleteTask = (task: Task) => {
+        setTaskToDelete(task);
         setIsDeleteModalOpen(true);
     };
 
     const confirmDeleteTask = () => {
-        if (taskIdToDelete) {
-            const task = tasks.find((t: any) => t.id === taskIdToDelete);
-            if (task) {
-                setTasks(tasks.filter((t: any) => t.id !== taskIdToDelete));
-                addActivity('Removeu missão do log tático', task.text, 'neutral');
-            }
-            setTaskIdToDelete(null);
+        if (taskToDelete) {
+            setTasks(tasks.filter((t: Task) => t.id !== taskToDelete.id));
+            addActivity('Removeu missão do log tático', taskToDelete.text, 'neutral');
+            setTaskToDelete(null);
             setIsDeleteModalOpen(false);
         }
     };
@@ -132,10 +136,10 @@ export const TasksPage = () => {
                         <Plus size={20} /> Nova Ocorrência
                     </button>
                     <button
-                        onClick={() => setIsFilterPanelOpen(!isFilterPanelOpen)}
-                        className={`p-5 rounded-2xl border transition-all ${isFilterPanelOpen ? 'bg-sky-500/10 border-sky-500 text-sky-400' : 'bg-slate-900 border-slate-800 text-slate-500 hover:text-white group-hover:border-slate-700'}`}
+                        onClick={() => setIsFilterPanelOpen(true)}
+                        className={`px-6 py-5 rounded-2xl border transition-all flex items-center gap-3 font-black text-[10px] tracking-widest uppercase italic group ${isFilterPanelOpen ? 'bg-sky-500/10 border-sky-500 text-sky-400' : 'bg-slate-900 border-slate-800 text-slate-500 hover:text-white hover:border-slate-700'}`}
                     >
-                        <Filter size={20} />
+                        <SlidersHorizontal size={20} className="group-hover:rotate-180 transition-transform duration-500" /> Advanced_Filters
                     </button>
                 </div>
             </div>
@@ -166,56 +170,57 @@ export const TasksPage = () => {
                 ))}
             </div>
 
-            {/* SCANNER PANEL */}
-            {isFilterPanelOpen && (
-                <div className="bg-slate-950/80 border border-slate-900 p-8 rounded-[2.5rem] mb-6 animate-in slide-in-from-top-4 duration-500 backdrop-blur-xl shadow-2xl relative overflow-hidden">
-                    <div className="absolute top-0 left-0 w-1.5 h-full bg-sky-500/50 z-20" />
-
+            <TacticalFilterBlade
+                isOpen={isFilterPanelOpen}
+                onClose={() => setIsFilterPanelOpen(false)}
+                title="Scanner de Varredura Operacional"
+                searchTerm={searchTerm}
+                onSearchChange={setSearchTerm}
+                onReset={() => {
+                    setSearchTerm('');
+                    setFilter('all');
+                }}
+                progress={stats.progress}
+                metrics={[
+                    { label: 'MISSÕES NO RADAR', value: filteredTasks.length.toString().padStart(3, '0') },
+                    { label: 'EFICIÊNCIA GLOBAL', value: `${stats.progress.toFixed(1)}%` }
+                ]}
+            >
+                <div className="space-y-8">
                     <div className="space-y-4">
-                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2 ml-1">
-                            <Search size={12} className="text-sky-500" /> Scanner de Varredura Operacional
-                        </label>
-
-                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
-                            <div className="lg:col-span-6">
-                                <div className="relative group h-full">
-                                    <input
-                                        type="text"
-                                        placeholder="BUSCAR EM PROTOCOLOS OU RESPONSÁVEIS..."
-                                        className="w-full h-full bg-slate-900/50 border border-slate-800 py-4 px-6 rounded-2xl text-xs font-black uppercase tracking-widest text-white outline-none focus:border-sky-500/50 transition-all italic placeholder:text-slate-800"
-                                        value={searchTerm}
-                                        onChange={e => setSearchTerm(e.target.value)}
-                                    />
-                                    <div className="absolute right-6 top-1/2 -translate-y-1/2 opacity-20 group-focus-within:opacity-100 transition-opacity pointer-events-none">
-                                        <Zap size={16} className="text-sky-500" />
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="lg:col-span-6 flex gap-2 overflow-x-auto custom-scrollbar pb-2 lg:pb-0">
-                                {[
-                                    { id: 'all', label: 'Ver Tudo' },
-                                    { id: 'pending', label: 'Pendentes' },
-                                    { id: 'done', label: 'Cumpridas' },
-                                    { id: 'high', label: 'Urgentes' }
-                                ].map(f => (
-                                    <button
-                                        key={f.id}
-                                        onClick={() => setFilter(f.id)}
-                                        className={`flex-1 px-4 py-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border whitespace-nowrap flex items-center justify-center ${filter === f.id ? 'bg-sky-600 text-white border-sky-400 shadow-lg' : 'bg-slate-900 border-slate-800 text-slate-500 hover:text-slate-200'}`}
-                                    >
-                                        {f.label}
-                                    </button>
-                                ))}
-                            </div>
+                        <label className="text-[8px] font-black text-slate-500 uppercase tracking-widest ml-1">Estado de Prontidão</label>
+                        <div className="grid grid-cols-2 gap-3">
+                            {[
+                                { id: 'all', label: 'Ver Tudo' },
+                                { id: 'pending', label: 'Pendentes' },
+                                { id: 'completed', label: 'Cumpridas' },
+                                { id: 'urgent', label: 'Urgentes' }
+                            ].map(f => (
+                                <button
+                                    key={f.id}
+                                    onClick={() => setFilter(f.id as 'all' | 'pending' | 'completed' | 'urgent')}
+                                    className={`px-4 py-4 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all border ${filter === f.id ? 'bg-sky-600 text-white border-sky-400 shadow-lg' : 'bg-slate-900 border-slate-800 text-slate-500 hover:text-slate-200'}`}
+                                >
+                                    {f.label}
+                                </button>
+                            ))}
                         </div>
                     </div>
+
+                    <div className="p-6 bg-sky-500/5 rounded-2xl border border-sky-500/10 space-y-3">
+                        <p className="text-[8px] text-sky-400 font-black uppercase tracking-widest italic flex items-center gap-2">
+                            <Activity size={12} /> Log de Operações
+                        </p>
+                        <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest italic leading-relaxed">
+                            A busca avançada permite localizar missões por descrição ou oficial responsável no campo de batalha.
+                        </p>
+                    </div>
                 </div>
-            )}
+            </TacticalFilterBlade>
 
             {/* TASK GRID */}
             <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-6 md:gap-8">
-                {filteredTasks.map((task: any) => {
+                {filteredTasks.map((task: Task) => {
                     const property = properties.find(p => p.id === task.propertyId);
                     return (
                         <Card
@@ -224,7 +229,7 @@ export const TasksPage = () => {
                             className={`group p-0 border-slate-800/60 transition-all duration-500 overflow-hidden rounded-[1.5rem] md:rounded-[2.5rem] flex flex-col relative ${task.done ? 'opacity-50' : 'hover:border-sky-500/40 shadow-xl'}`}
                         >
                             <div className="absolute top-0 right-0 p-6 z-10 opacity-0 group-hover:opacity-100 transition-all flex gap-2">
-                                <button onClick={() => deleteTask(task.id)} className="text-slate-800 hover:text-rose-500 transition-colors"><Trash2 size={16} /></button>
+                                <button onClick={() => deleteTask(task)} className="text-slate-800 hover:text-rose-500 transition-colors"><Trash2 size={16} /></button>
                             </div>
 
                             <div className={`h-1.5 w-full ${task.done ? 'bg-slate-800' : task.priority === 'high' ? 'bg-rose-500 animate-pulse' : task.priority === 'medium' ? 'bg-amber-500' : 'bg-emerald-500'}`} />
@@ -232,7 +237,7 @@ export const TasksPage = () => {
                             <div className="p-8">
                                 <div className="flex items-start gap-5 mb-6">
                                     <button
-                                        onClick={() => toggleTask(task.id)}
+                                        onClick={() => handleToggleTask(task)}
                                         className={`w-14 h-14 rounded-[1.25rem] border flex items-center justify-center transition-all duration-500 ${task.done ? 'bg-emerald-500 border-emerald-400 text-emerald-950' : 'bg-slate-950 border-slate-800 text-slate-700 hover:border-sky-500/50 hover:text-sky-400 shadow-xl active:scale-95'}`}
                                     >
                                         {task.done ? <CheckCircle2 size={28} strokeWidth={3} /> : <Circle size={28} strokeWidth={3} />}
@@ -292,7 +297,7 @@ export const TasksPage = () => {
                                 </span>
 
                                 <button
-                                    onClick={() => { setEditingId(task.id); setFormData({ ...task, propertyId: task.propertyId?.toString() || '' }); setIsFormOpen(true); }}
+                                    onClick={() => handleEdit(task)}
                                     className="px-6 py-3 bg-slate-950 border border-slate-800 hover:border-sky-500/50 rounded-xl text-[10px] font-black text-slate-500 hover:text-white uppercase tracking-widest transition-all active:scale-95 flex items-center gap-3"
                                 >
                                     <Edit size={14} /> DETALHES TÉCNICOS
@@ -310,13 +315,14 @@ export const TasksPage = () => {
             </div>
 
             {/* PROTOCOL MODAL: TASK */}
-            {isFormOpen && (
-                <div className="fixed inset-0 z-[120] flex items-center justify-center p-2 md:p-4">
-                    <div className="absolute inset-0 bg-slate-950/95 backdrop-blur-2xl" onClick={() => setIsFormOpen(false)} />
-
-                    <Card variant="glass" className="w-full max-w-2xl relative z-10 p-0 overflow-hidden border-sky-500/20 shadow-2xl rounded-[1.5rem] md:rounded-[3rem] !scale-100 flex flex-col">
+            <Modal
+                isOpen={isFormOpen}
+                onClose={() => setIsFormOpen(false)}
+                maxWidth="max-w-2xl"
+            >
+                <Card variant="glass" className="relative z-10 p-0 overflow-hidden border-sky-500/20 shadow-2xl rounded-[1.5rem] md:rounded-[3rem] !scale-100 flex flex-col">
                         <div className="h-1.5 w-full bg-slate-900">
-                            <div className="h-full bg-sky-500 shadow-[0_0_15px_#0ea5e9]" style={{ width: editingId ? '100%' : '50%' }} />
+                            <div className="h-full bg-sky-500 shadow-[0_0_15px_#0ea5e9]" style={{ width: editingTask ? '100%' : '50%' }} />
                         </div>
 
                         <div className="p-10 border-b border-slate-800 bg-slate-950/40 flex justify-between items-center shrink-0">
@@ -325,7 +331,7 @@ export const TasksPage = () => {
                                     <ClipboardList size={28} />
                                 </div>
                                 <div>
-                                    <h3 className="text-3xl font-black text-white uppercase italic tracking-tighter">{editingId ? 'Retificação de Missão' : 'Nova Homologação Operacional'}</h3>
+                                    <h3 className="text-3xl font-black text-white uppercase italic tracking-tighter">{editingTask ? 'Retificação de Missão' : 'Nova Homologação Operacional'}</h3>
                                     <p className="text-slate-500 text-[10px] font-black uppercase tracking-[0.4em] mt-1 italic flex items-center gap-2">
                                         <Zap size={12} className="text-sky-500" /> Registro em Log Tático Centralizado
                                     </p>
@@ -362,7 +368,7 @@ export const TasksPage = () => {
                                             <button
                                                 key={p.id}
                                                 type="button"
-                                                onClick={() => setFormData({ ...formData, priority: p.id as any })}
+                                                onClick={() => setFormData({ ...formData, priority: p.id as 'high' | 'medium' | 'low' })}
                                                 className={`py-3 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${formData.priority === p.id ? `bg-${p.color}-500/10 border-${p.color}-500 text-${p.color}-400 shadow-lg shadow-${p.color}-500/20` : 'bg-slate-900 border-slate-800 text-slate-600'}`}
                                             >
                                                 {p.label}
@@ -386,8 +392,8 @@ export const TasksPage = () => {
                                 <div className="space-y-2">
                                     <label className="text-[10px] text-slate-500 font-black uppercase tracking-widest ml-1 italic">Vetor Territorial</label>
                                     <select
-                                        value={formData.propertyId}
-                                        onChange={e => setFormData({ ...formData, propertyId: e.target.value })}
+                                        value={formData.propertyId || ''}
+                                        onChange={e => setFormData({ ...formData, propertyId: e.target.value ? parseInt(e.target.value) : undefined })}
                                         className="w-full bg-slate-900 border border-slate-800 rounded-2xl px-6 py-4 text-sm font-black text-white outline-none focus:border-sky-500/50 italic appearance-none cursor-pointer"
                                     >
                                         <option value="">(NÃO ESPECIFICADO)</option>
@@ -418,8 +424,7 @@ export const TasksPage = () => {
                             </div>
                         </form>
                     </Card>
-                </div>
-            )}
+            </Modal>
 
             <TechnicalConfirmModal
                 isOpen={isDeleteModalOpen}

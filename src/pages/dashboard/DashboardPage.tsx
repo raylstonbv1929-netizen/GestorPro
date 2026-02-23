@@ -21,12 +21,12 @@ const CountUp = ({ value, currency }: { value: number, currency: string }) => {
             return;
         }
 
-        let totalMiliseconds = 1000;
-        let incrementTime = 10;
-        let steps = totalMiliseconds / incrementTime;
-        let increment = end / steps;
+        const totalMiliseconds = 1000;
+        const incrementTime = 10;
+        const steps = totalMiliseconds / incrementTime;
+        const increment = end / steps;
 
-        let timer = setInterval(() => {
+        const timer = setInterval(() => {
             start += increment;
             if ((increment > 0 && start >= end) || (increment < 0 && start <= end)) {
                 setCount(end);
@@ -88,17 +88,21 @@ export const DashboardPage = () => {
     return (
         <div className="animate-fade-in space-y-6 h-full flex flex-col p-2 overflow-y-auto custom-scrollbar pb-10">
             {/* AGROGEST SENTINEL COMMAND CENTER */}
-            <div className="flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-6 bg-slate-900/40 p-8 rounded-[1.5rem] md:rounded-[2.5rem] border border-slate-800/60 shadow-2xl backdrop-blur-xl relative overflow-hidden group">
+            <div className="flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-6 bg-slate-900/40 p-6 md:p-8 rounded-[1.5rem] md:rounded-[2.5rem] border border-slate-800/60 shadow-2xl backdrop-blur-xl relative overflow-hidden group min-h-fit transition-all duration-500">
                 <div className="absolute top-0 left-0 w-1.5 h-full bg-emerald-500 z-20" />
 
-                <div className="relative z-10 flex-1">
+                <div className="relative z-10 flex-1 min-w-0">
                     <div className="flex items-center gap-3 mb-2">
                         <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)]"></span>
                         <p className="text-slate-500 text-[10px] font-black uppercase tracking-[0.4em] italic">Consolidado em Tempo Real</p>
                     </div>
-                    <h2 className="text-5xl md:text-7xl font-black text-white tracking-tighter italic flex items-baseline gap-4 group-hover:scale-[1.01] transition-transform duration-700">
-                        <CountUp value={stats.balance} currency={settings.currency} />
-                        <span className="text-xs font-black text-emerald-500/60 not-italic uppercase tracking-[0.2em] hidden md:block">Disponibilidade de Caixa</span>
+                    <h2 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black text-white tracking-tighter italic flex flex-wrap items-baseline gap-x-6 gap-y-2 group-hover:scale-[1.01] transition-transform duration-700 overflow-hidden">
+                        <span className="truncate max-w-full">
+                            <CountUp value={stats.balance} currency={settings.currency} />
+                        </span>
+                        <span className="text-[10px] sm:text-xs font-black text-emerald-500/60 not-italic uppercase tracking-[0.2em] whitespace-nowrap">
+                            Disponibilidade de Caixa
+                        </span>
                     </h2>
 
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mt-8">
@@ -146,20 +150,22 @@ export const DashboardPage = () => {
                 ].map((item, idx) => (
                     <Card
                         key={idx}
-                        onClick={() => setActiveTab(item.tab as any)}
-                        className={`group p-6 border-slate-900 hover:border-${item.color}-500/40 transition-all duration-500 cursor-pointer overflow-hidden rounded-[2rem] bg-slate-950 relative`}
+                        onClick={() => setActiveTab(item.tab as string)}
+                        className={`group p-6 border-slate-900 hover:border-${item.color}-500/40 transition-all duration-500 cursor-pointer overflow-hidden rounded-[2rem] bg-slate-950 relative min-h-[160px] flex flex-col justify-between`}
                     >
-                        <div className={`absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity text-${item.color}-500`}>
+                        <div className={`absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity text-${item.color}-500 pointer-events-none`}>
                             <item.icon size={48} />
                         </div>
-                        <div className="flex justify-between items-start mb-4">
+                        <div className="flex justify-between items-start mb-2 relative z-10 text-wrap">
                             <div className={`p-3 bg-slate-900 border border-slate-800 rounded-xl group-hover:border-${item.color}-500/20 transition-colors`}>
                                 <item.icon size={20} className={`text-${item.color}-500/70 group-hover:text-${item.color}-400`} />
                             </div>
-                            <span className={`text-[8px] font-black text-slate-700 tracking-widest group-hover:text-${item.color}-500/50 transition-colors uppercase italic`}>{item.code}</span>
+                            <span className={`text-[8px] font-black text-slate-700 tracking-widest group-hover:text-${item.color}-500/50 transition-colors uppercase italic truncate ml-2`}>{item.code}</span>
                         </div>
-                        <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1 italic">{item.label}</p>
-                        <h4 className="text-3xl font-black text-white italic tracking-tighter group-hover:translate-x-1 transition-transform">{item.value.toString().padStart(2, '0')}</h4>
+                        <div className="relative z-10">
+                            <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1 italic">{item.label}</p>
+                            <h4 className="text-3xl font-black text-white italic tracking-tighter group-hover:translate-x-1 transition-transform">{item.value.toString().padStart(2, '0')}</h4>
+                        </div>
                     </Card>
                 ))}
             </div>
