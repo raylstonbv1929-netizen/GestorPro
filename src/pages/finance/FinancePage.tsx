@@ -311,6 +311,31 @@ export const FinancePage = () => {
                     </div>
                 </div>
 
+                {/* SECTOR: PROPRIEDADE */}
+                <div className="space-y-6">
+                    <h4 className="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em] flex items-center gap-2 border-l-2 border-amber-500 pl-3">
+                        UNIDADE DE PRODUÇÃO
+                    </h4>
+                    <div className="space-y-2">
+                        <label className="text-[8px] font-black text-slate-600 uppercase tracking-widest mb-1 block">SELECIONAR PROPRIEDADE</label>
+                        <div className="relative group">
+                            <select
+                                value={filters.propertyId || 'all'}
+                                onChange={e => updateAdvancedFilter('propertyId', e.target.value)}
+                                className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-xs font-bold text-slate-300 outline-none focus:border-amber-500/50 appearance-none cursor-pointer transition-all pr-10"
+                            >
+                                <option value="all">Todas as Unidades</option>
+                                {properties.map(p => (
+                                    <option key={p.id} value={p.id.toString()}>{p.name}</option>
+                                ))}
+                            </select>
+                            <div className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-600 pointer-events-none group-hover:text-amber-500 transition-colors">
+                                <Landmark size={14} />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 {/* SECTOR: PERÍODO */}
                 <div className="space-y-6">
                     <h4 className="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em] flex items-center gap-2 border-l-2 border-emerald-500 pl-3">
